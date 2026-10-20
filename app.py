@@ -70,6 +70,31 @@ def save_data(file_path, data):
     with open(file_path, "w") as f:
         json.dump(data, f, indent=4)
 
+# --- AUTO-BALANCE BUDDY LOGIC ---
+def auto_balance_buddies(roster_dict):
+    anchors_core = []
+    developing = []
+   
+    # Categorize based on tier rules
+    for p_name, p_data in roster_dict.items():
+        t = p_data.get("tier", "Developing")
+        if "Floating" in t or "Floating" in p_data.get("buddy", ""):
+            continue
+        if t in ["Anchor", "Playmaker", "Server Specialist", "Defensive Specialist", "Anchor / Floating Rotator"]:
+            anchors_core.append(p_name)
+        else:
+            developing.append(p_name)
+           
+    # Pair Anchors/Core with Developing players 1-to-1
+    pairs_count = min(len(anchors_core), len(developing))
+    for i in range(pairs_count):
+        anc = anchors_core[i]
+        dev = developing[i]
+        roster_dict[anc]["buddy"] = dev
+        roster_dict[dev]["buddy"] = anc
+       
+    return roster_dict
+
 # --- INITIALIZE PERMANENT SESSION STATE ---
 if "roster" not in st.session_state:
     st.session_state["roster"] = load_data(ROSTER_FILE, DEFAULT_ROSTER)
@@ -101,7 +126,7 @@ tab_lineup, tab_court, tab_stats, tab_roles, tab_history, tab_rules = st.tabs([
     "⚙️ League Rules & Settings"
 ])
 
-# --- TAB 1: LINEUP GENERATOR (PERMANENTLY SAVED) ---
+# --- TAB 1: LINEUP GENERATOR ---
 with tab_lineup:
     st.header(f"📋 Lineup Generator - {active_team}")
    
@@ -141,7 +166,6 @@ with tab_lineup:
                 },
                 "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_list}
             }
-            # WRITE MATCH TO PERMANENT FILE
             save_data(MATCHES_FILE, st.session_state["matches"])
             st.success(f"💾 Permanently saved {match_title} to cloud memory!")
             st.rerun()
@@ -231,7 +255,7 @@ with tab_court:
         with br3:
             st.metric(label="Pos 1 (Back Right / Server)", value=p1, delta=f"1st Server | {st.session_state['roster'].get(p1, {}).get('role', 'Utility')} | {st.session_state['roster'].get(p1, {}).get('tier', 'Developing')}")
 
-# --- TAB 3: LIVE SERVE & POINT TRACKER (PERMANENT STAT AUTO-SAVE) ---
+# --- TAB 3: LIVE SERVE & POINT TRACKER ---
 with tab_stats:
     st.header("📊 Live Courtside Serve & Point Tracker")
    
@@ -301,12 +325,12 @@ with tab_stats:
                 mime="text/csv"
             )
 
-# --- TAB 4: ROSTER, SKILL TIERS & POSITIONS (PERMANENT SAVING) ---
+# --- TAB 4: ROSTER, SKILL TIERS & POSITIONS ---
 with tab_roles:
     st.header(f"👥 Roster & Position Settings - {active_team}")
-    st.info("💡 **Permanent Auto-Save:** Updates write directly to permanent storage files!")
+    st.info("💡 **Coaching Controls:** Update player profiles or auto-balance buddy pairs below!")
    
-    tier_options = ["Anchor", "Playmaker", "Developing", "Server Specialist", "Anchor / Floating Rotator"]
+    tier_options = ["Anchor", "Playmaker", "Developing", "Server Specialist", "Defensive Specialist", "Anchor / Floating Rotator"]
     role_options = ["Setter (S)", "Libero / DS (L)", "Outside Hitter (OH)", "Middle Blocker (MB)", "Right Side (OPP)", "Defensive Specialist (DS)", "Universal / Utility"]
     buddy_options = active_team_roster + ["None (Floating)", "Open / Unassigned"]
    
@@ -324,8 +348,18 @@ with tab_roles:
             })
         st.dataframe(pd.DataFrame(role_rows), use_container_width=True)
        
+        st.markdown("---")
+        st.subheader("⚡ Auto-Balance Buddy System")
+        st.caption("Treats Anchors, Playmakers, Server Specialists, and Defensive Specialists as Core Anchors, pairing them 1-to-1 with Developing players.")
+       
+        if st.button("⚡ Auto-Balance Buddy Pairs Now"):
+            st.session_state["roster"] = auto_balance_buddies(st.session_state["roster"])
+            save_data(ROSTER_FILE, st.session_state["roster"])
+            st.success("⚡ Successfully re-balanced and permanently saved Buddy Pairs based on skill tiers!")
+            st.rerun()
+
     with col_r2:
-        st.subheader("Update Player Profile")
+        st.subheader("Update Individual Player Profile")
         edit_p = st.selectbox("Select Player to Update:", active_team_roster, key="edit_p_perm")
        
         with st.form(key="perm_player_form"):
