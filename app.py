@@ -107,7 +107,6 @@ tab_lineup, tab_court, tab_stats, tab_roles, tab_history, tab_rules = st.tabs([
 with tab_lineup:
     st.header(f"📋 Lineup Generator - {active_team}")
    
-    # CALLBACK FUNCTION: ENFORCES ABSENCE REMOVAL IN REAL TIME
     def purge_absent_players():
         absent = st.session_state.get("absent_tracker_key", [])
         avail = [p for p in active_team_roster if p not in absent]
@@ -117,7 +116,6 @@ with tab_lineup:
             m_data["active_players"] = avail
            
             for set_k in ["Set 1", "Set 2", "Set 3"]:
-                # Filter starters
                 m_data["lineup"][set_k]["Starters"] = [p for p in m_data["lineup"][set_k]["Starters"] if p in avail]
                 while len(m_data["lineup"][set_k]["Starters"]) < min(6, len(avail)):
                     for p in avail:
@@ -126,10 +124,8 @@ with tab_lineup:
                             if len(m_data["lineup"][set_k]["Starters"]) == min(6, len(avail)):
                                 break
                                
-                # Filter subs
                 m_data["lineup"][set_k]["Subs"] = [p for p in m_data["lineup"][set_k]["Subs"] if p in avail or p == "Open"]
                
-                # Clear session state keys to force dropdown refresh
                 for idx in range(6):
                     k_st = f"{selected_match_key}_{set_k}_st_{idx}"
                     k_su = f"{selected_match_key}_{set_k}_su_{idx}"
@@ -138,7 +134,6 @@ with tab_lineup:
            
             save_data(MATCHES_FILE, st.session_state["matches"])
 
-    # ABSENCE MULTISELECT WITH CALLBACK
     st.markdown("### 🚫 Pre-Game Attendance & Absence Tracker")
     absent_selected = st.multiselect(
         "Mark Players Absent / Out Today:",
@@ -148,7 +143,6 @@ with tab_lineup:
     )
    
     available_roster = [p for p in active_team_roster if p not in absent_selected]
-   
     st.markdown("---")
    
     if selected_match_key == "➕ Create New Game" or not selected_match_key:
@@ -217,8 +211,7 @@ with tab_lineup:
                             index=available_roster.index(curr_p) if curr_p in available_roster else 0,
                             key=f"{selected_match_key}_{set_num}_st_{idx}"
                         )
-                        if idx < len(curr_starters):
-                            curr_starters[idx] = sel_p
+                        if idx < len(curr_starters): curr_starters[idx] = sel_p
                 with col_su:
                     st.markdown("### 🔄 Bench Subs")
                     sub_opts = available_roster + ["Open"]
@@ -231,8 +224,7 @@ with tab_lineup:
                             index=sub_opts.index(curr_s) if curr_s in sub_opts else 0,
                             key=f"{selected_match_key}_{set_num}_su_{idx}"
                         )
-                        if idx < len(curr_subs):
-                            curr_subs[idx] = sel_s
+                        if idx < len(curr_subs): curr_subs[idx] = sel_s
                            
         if st.button("💾 Permanently Save Lineup Changes"):
             save_data(MATCHES_FILE, st.session_state["matches"])
@@ -347,9 +339,54 @@ with tab_roles:
                 st.toast(f"💾 Saved {edit_p}!", icon="✅")
                 st.rerun()
 
-# --- TAB 5 & TAB 6 ---
+# --- TAB 5: SEASON HISTORY ---
 with tab_history:
     st.header(f"📈 Season History - {active_team}")
+    st.caption("Aggregated performance metrics across all logged matches.")
+   
+    season_totals = {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_team_roster}
+    for g_key, g_data in st.session_state["matches"].items():
+        if g_data.get("team") == active_team:
+            for p_name, p_stat in g_data["stats"].items():
+                if p_name not in season_totals:
+                    season_totals[p_name] = {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0}
+                season_totals[p_name]["Attempts"] += p_stat["Attempts"]
+                season_totals[p_name]["Makes"] += p_stat["Makes"]
+                season_totals[p_name]["Aces"] += p_stat["Aces"]
+                season_totals[p_name]["Points_Won"] += p_stat["Points_Won"]
+           
+    season_rows = []
+    for p_name, s_stat in season_totals.items():
+        att = s_stat["Attempts"]
+        mks = s_stat["Makes"]
+        pct = (mks / att * 100) if att > 0 else 0.0
+        season_rows.append({
+            "Player": p_name,
+            "Position": st.session_state["roster"].get(p_name, {}).get("role", "Utility"),
+            "Tier": st.session_state["roster"].get(p_name, {}).get("tier", "Developing"),
+            "Total Serve Attempts": att,
+            "Total Serves In": mks,
+            "Season Serve %": f"{pct:.1f}%",
+            "Total Aces": s_stat["Aces"],
+            "Total Points Scored on Serve": s_stat["Points_Won"]
+        })
+       
+    df_season = pd.DataFrame(season_rows)
+    st.dataframe(df_season, use_container_width=True)
 
+# --- TAB 6: LEAGUE RULES & SETTINGS (RESTORED FULL CONTENT) ---
 with tab_rules:
-    st.header("⚙️ CBRC League Rules & Settings")
+    st.header("⚙️ CBRC League Rules & Settings Engine")
+   
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        st.subheader("Substitution Limits & Formats")
+        st.slider("Max Subs Per Stoppage", 1, 6, 3)
+        st.number_input("Mandatory Sub Credits Per Match", 1, 10, 4)
+        st.selectbox("Match Format", ["3 Fixed Sets (CBRC Standard)", "Best 2 out of 3", "Best 3 out of 5"])
+   
+    with col_r2:
+        st.subheader("Participation Guidelines")
+        st.selectbox("Set Starting Requirement", ["Must start Set 1 or Set 2 (CBRC)", "Must start at least 1 set", "Open / Coach Choice"])
+        st.checkbox("Enforce Set 3 Participation for All Active Players", value=True)
+        st.checkbox("Enable Libero / Position Tracking", value=True)
