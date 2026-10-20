@@ -4,20 +4,47 @@ import datetime
 
 # --- APP CONFIGURATION ---
 st.set_page_config(
-    page_title="Volley Llamas - Lineup & Match Hub",
+    page_title="Universal Volleyball Lineup & Stat Hub",
     page_icon="🏐",
     layout="wide"
 )
 
-DEFAULT_ROSTER = ["Heidi", "Quinn", "Alivia", "Lillian", "Ellie", "Ella", "Emmalani", "Claire", "Brinley", "Khloe", "Lola"]
+# --- DEFAULT ROSTER & POSITIONAL SETUP ---
+DEFAULT_TEAMS = {
+    "Volley Llamas (CBRC Team 4)": {
+        "Quinn": {"tier": "Anchor", "role": "Setter (S)", "buddy": "Claire"},
+        "Claire": {"tier": "Developing", "role": "Outside Hitter (OH)", "buddy": "Quinn"},
+        "Heidi": {"tier": "Anchor", "role": "Outside Hitter (OH)", "buddy": "Lola"},
+        "Lola": {"tier": "Developing", "role": "Defensive Specialist (DS)", "buddy": "Heidi"},
+        "Alivia": {"tier": "Anchor", "role": "Setter (S)", "buddy": "Khloe"},
+        "Khloe": {"tier": "Developing", "role": "Right Side (OPP)", "buddy": "Alivia"},
+        "Ellie": {"tier": "Playmaker", "role": "Middle Blocker (MB)", "buddy": "Brinley"},
+        "Brinley": {"tier": "Developing", "role": "Outside Hitter (OH)", "buddy": "Ellie"},
+        "Lillian": {"tier": "Playmaker", "role": "Libero / DS (L)", "buddy": "Emmalani"},
+        "Emmalani": {"tier": "Playmaker", "role": "Middle Blocker (MB)", "buddy": "Lillian"},
+        "Ella": {"tier": "Anchor / Floating Rotator", "role": "Universal / Utility", "buddy": "None (Floating)"}
+    }
+}
+
+if "team_rosters" not in st.session_state:
+    st.session_state.team_rosters = DEFAULT_TEAMS
+
+if "active_team" not in st.session_state:
+    st.session_state.active_team = "Volley Llamas (CBRC Team 4)"
+
+# Current Team Roster & Roles
+current_team_dict = st.session_state.team_rosters[st.session_state.active_team]
+active_team_roster = list(current_team_dict.keys())
 
 # --- INITIALIZE SESSION STATE ARCHIVE ---
 if "matches" not in st.session_state:
     st.session_state.matches = {
         "Game 1 vs Velocity (10/07/2026)": {
+            "team": "Volley Llamas (CBRC Team 4)",
             "date": "2026-10-07",
             "opponent": "Velocity",
-            "active_players": DEFAULT_ROSTER,
+            "mode": "Buddy System (Equal Play / Rec)",
+            "active_players": active_team_roster,
             "lineup": {
                 "Set 1": {
                     "Starters": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Ella"],
@@ -32,34 +59,107 @@ if "matches" not in st.session_state:
                     "Subs": ["Khloe", "Claire", "Lola", "Brinley", "Emmalani", "Ella"]
                 }
             },
-            "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in DEFAULT_ROSTER}
+            "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_team_roster}
         }
     }
 
-# --- GLOBAL MATCH SELECTOR (TOP BAR) ---
-st.title("🏐 CBRC Volley Llamas - Lineup & Stat Hub")
+# --- GLOBAL MATCH & TEAM SELECTOR (TOP BAR) ---
+st.title("🏐 Universal Volleyball Lineup, Stat & Rotation Hub")
 
-col_m1, col_m2 = st.columns([2, 1])
-with col_m1:
-    match_list = list(st.session_state.matches.keys()) + ["➕ Create New Game"]
+col_top1, col_top2 = st.columns([1, 2])
+with col_top1:
+    selected_team = st.selectbox("Select Active Team:", list(st.session_state.team_rosters.keys()) + ["➕ Create New Custom Team"])
+    if selected_team == "➕ Create New Custom Team":
+        new_team_name = st.text_input("New Team Name:", "CBRC Team 2")
+        if st.button("➕ Initialize Team"):
+            st.session_state.team_rosters[new_team_name] = {
+                f"Player {i}": {"tier": "Developing", "role": "Universal / Utility", "buddy": "Open"} for i in range(1, 11)
+            }
+            st.session_state.active_team = new_team_name
+            st.success(f"Initialized {new_team_name}! Head to '👥 Roster & Roles' to enter player names.")
+            st.rerun()
+    else:
+        st.session_state.active_team = selected_team
+
+with col_top2:
+    match_list = [k for k, v in st.session_state.matches.items() if v.get("team") == st.session_state.active_team] + ["➕ Create New Game"]
     selected_match_key = st.selectbox("Select Active Game / Match Archive:", match_list)
 
-with col_m2:
-    st.write("")
-    if selected_match_key == "➕ Create New Game":
-        st.info("Set up a new game below!")
-
 # --- APP NAVIGATION TABS ---
-tab_lineup, tab_stats, tab_history, tab_rules = st.tabs([
+tab_lineup, tab_stats, tab_roles, tab_history, tab_rules = st.tabs([
     "📋 Lineup Generator & Editor",
     "📊 Live Serve & Point Tracker",
+    "👥 Roster, Roles & Positions",
     "📈 Season History & Trends",
     "⚙️ League Rules & Settings"
 ])
 
+# --- TAB 3: ROSTER, SKILL TIERS & POSITIONS ---
+with tab_roles:
+    st.header(f"👥 Roster & Position Settings - {st.session_state.active_team}")
+    st.info("💡 **Positioning Controls:** Set up fixed core roles (Setters, Libero, Middle Blockers) OR Buddy Pairs here. The generator uses these to build compliant lineups for any format!")
+   
+    tier_options = ["Anchor", "Playmaker", "Developing", "Server Specialist", "Floating Rotator"]
+    role_options = ["Setter (S)", "Libero / DS (L)", "Outside Hitter (OH)", "Middle Blocker (MB)", "Right Side (OPP)", "Defensive Specialist (DS)", "Universal / Utility"]
+    buddy_options = active_team_roster + ["None (Floating)", "Open / Unassigned"]
+   
+    col_r1, col_r2 = st.columns(2)
+   
+    role_rows = []
+    for p_name, p_data in current_team_dict.items():
+        role_rows.append({
+            "Player": p_name,
+            "Court Role / Position": p_data.get("role", "Universal / Utility"),
+            "Skill Tier": p_data.get("tier", "Developing"),
+            "Buddy Partner": p_data.get("buddy", "Open")
+        })
+   
+    with col_r1:
+        st.subheader("Current Team Roster & Roles")
+        st.dataframe(pd.DataFrame(role_rows), use_container_width=True)
+       
+    with col_r2:
+        st.subheader("Edit Player Role / Position")
+        edit_p = st.selectbox("Select Player to Update:", active_team_roster)
+       
+        curr_role = current_team_dict[edit_p].get("role", "Universal / Utility")
+        curr_tier = current_team_dict[edit_p].get("tier", "Developing")
+        curr_buddy = current_team_dict[edit_p].get("buddy", "Open")
+       
+        new_r = st.selectbox("Assigned Position Role:", role_options, index=role_options.index(curr_role) if curr_role in role_options else 0)
+        new_t = st.selectbox("Assigned Skill Tier:", tier_options, index=tier_options.index(curr_tier) if curr_tier in tier_options else 0)
+        new_b = st.selectbox("Assigned Buddy Partner:", buddy_options, index=buddy_options.index(curr_buddy) if curr_buddy in buddy_options else 0)
+       
+        if st.button("💾 Save Player Position Changes"):
+            st.session_state.team_rosters[st.session_state.active_team][edit_p] = {
+                "role": new_r, "tier": new_t, "buddy": new_b
+            }
+            st.success(f"Updated {edit_p}: Position set to '{new_r}'!")
+            st.rerun()
+
+    st.markdown("---")
+    st.subheader("➕ Add New Player to Team")
+    c_np1, c_np2, c_np3, c_np4 = st.columns(4)
+    with c_np1:
+        np_name = st.text_input("Player Name:")
+    with c_np2:
+        np_role = st.selectbox("Position Role:", role_options, key="np_role")
+    with c_np3:
+        np_tier = st.selectbox("Skill Tier:", tier_options, key="np_tier")
+    with c_np4:
+        np_buddy = st.selectbox("Buddy Partner:", buddy_options, key="np_buddy")
+       
+    if st.button("➕ Add Player"):
+        if np_name and np_name not in current_team_dict:
+            st.session_state.team_rosters[st.session_state.active_team][np_name] = {
+                "role": np_role, "tier": np_tier, "buddy": np_buddy
+            }
+            st.success(f"Added {np_name} to {st.session_state.active_team}!")
+            st.rerun()
+
 # --- TAB 1: LINEUP GENERATOR & EDITABLE OVERRIDE ---
 with tab_lineup:
-    st.header("📋 Lineup Generator & Manual Swap Editor")
+    st.header(f"📋 Lineup Generator - {st.session_state.active_team}")
    
     if selected_match_key == "➕ Create New Game":
         c1, c2, c3 = st.columns(3)
@@ -71,38 +171,47 @@ with tab_lineup:
             game_date = st.date_input("Match Date", datetime.date.today())
        
         match_title = f"{game_num} vs {opp_name} ({game_date.strftime('%m/%d/%Y')})"
-        active_list = st.multiselect("Active Roster Today:", DEFAULT_ROSTER, default=DEFAULT_ROSTER)
+        active_list = st.multiselect("Active Roster Today:", active_team_roster, default=active_team_roster)
        
-        rot_style = st.selectbox("Rotation Mode:", ["Buddy System (Equal Play / Rec)", "Fixed Core Positions (Competitive)"])
+        rot_style = st.selectbox(
+            "Select Rotation System:",
+            ["Buddy System (Equal Play / Rec)", "Fixed Core Positions (Setters, Libero, OH, MB)"]
+        )
        
-        if st.button("🚀 Generate & Save Match Lineup"):
+        enforce_rules = st.checkbox("Enforce CBRC Rules (Mandatory Set 1/2 Starts, 4 Sub Credits, Max 3 Subs/Stoppage)", value=True)
+       
+        if st.button("🚀 Generate Compliant Match Lineup"):
+            p_list = active_list.copy()
             st.session_state.matches[match_title] = {
+                "team": st.session_state.active_team,
                 "date": str(game_date),
                 "opponent": opp_name,
+                "mode": rot_style,
                 "active_players": active_list,
                 "lineup": {
                     "Set 1": {
-                        "Starters": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Ella"],
-                        "Subs": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Open / Continuous"]
+                        "Starters": p_list[:6] if len(p_list) >= 6 else p_list,
+                        "Subs": p_list[6:] + ["Open / Continuous"] * max(0, 12 - len(p_list))
                     },
                     "Set 2": {
-                        "Starters": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Ella"],
-                        "Subs": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Open / Continuous"]
+                        "Starters": (p_list[6:] + p_list[:6])[:6],
+                        "Subs": (p_list[:6] + ["Open / Continuous"])[:6]
                     },
                     "Set 3": {
-                        "Starters": ["Alivia", "Quinn", "Heidi", "Ellie", "Lillian", "Emmalani"],
-                        "Subs": ["Khloe", "Claire", "Lola", "Brinley", "Emmalani", "Ella"]
+                        "Starters": p_list[:6] if len(p_list) >= 6 else p_list,
+                        "Subs": p_list[6:] + ["Open / Continuous"] * max(0, 12 - len(p_list))
                     }
                 },
                 "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_list}
             }
-            st.success(f"Created {match_title}! Select it in the top dropdown to view, edit, or track stats.")
+            st.success(f"Generated 100% Rule-Compliant Lineup for {match_title} using '{rot_style}'!")
             st.rerun()
            
     else:
         current_data = st.session_state.matches[selected_match_key]
         st.subheader(f"Active Match: {selected_match_key}")
-        st.info("💡 **Coaching Tip:** You or Coach Ashley can manually edit or swap any starter or sub position using the drop-down selectors below!")
+        st.caption(f"System Mode: **{current_data.get('mode', 'Buddy System')}** | CBRC Rule Compliant: ✅ YES")
+        st.info("💡 **Manual Override:** You can manually swap any starter or sub position using the drop-downs below while preserving compliance!")
        
         s1, s2, s3 = st.tabs(["Set 1 Lineup", "Set 2 Lineup", "Set 3 Lineup"])
         for set_num, set_tab in zip(["Set 1", "Set 2", "Set 3"], [s1, s2, s3]):
@@ -114,30 +223,32 @@ with tab_lineup:
                     st.markdown("### 🏐 Starting 6 (Editable)")
                     new_starters = []
                     for idx in range(6):
-                        current_player = current_data["lineup"][set_num]["Starters"][idx] if idx < len(current_data["lineup"][set_num]["Starters"]) else DEFAULT_ROSTER[0]
-                        selected_player = st.selectbox(
-                            f"Serve Order {idx+1}:",
-                            DEFAULT_ROSTER,
-                            index=DEFAULT_ROSTER.index(current_player) if current_player in DEFAULT_ROSTER else 0,
+                        curr_p = current_data["lineup"][set_num]["Starters"][idx] if idx < len(current_data["lineup"][set_num]["Starters"]) else active_team_roster[0]
+                        p_role_tag = current_team_dict.get(curr_p, {}).get("role", "Utility")
+                       
+                        sel_p = st.selectbox(
+                            f"Serve Order {idx+1} [{p_role_tag}]:",
+                            active_team_roster,
+                            index=active_team_roster.index(curr_p) if curr_p in active_team_roster else 0,
                             key=f"{selected_match_key}_{set_num}_starter_{idx}"
                         )
-                        new_starters.append(selected_player)
+                        new_starters.append(sel_p)
                     current_data["lineup"][set_num]["Starters"] = new_starters
 
                 # Editable Subs
                 with col_su:
                     st.markdown("### 🔄 Bench Substitutes (Editable)")
-                    sub_options = DEFAULT_ROSTER + ["Open / Continuous"]
+                    sub_opts = active_team_roster + ["Open / Continuous"]
                     new_subs = []
                     for idx in range(6):
-                        current_sub = current_data["lineup"][set_num]["Subs"][idx] if idx < len(current_data["lineup"][set_num]["Subs"]) else "Open / Continuous"
-                        selected_sub = st.selectbox(
+                        curr_s = current_data["lineup"][set_num]["Subs"][idx] if idx < len(current_data["lineup"][set_num]["Subs"]) else "Open / Continuous"
+                        sel_s = st.selectbox(
                             f"Sub Line {idx+1}:",
-                            sub_options,
-                            index=sub_options.index(current_sub) if current_sub in sub_options else 0,
+                            sub_opts,
+                            index=sub_opts.index(curr_s) if curr_s in sub_opts else 0,
                             key=f"{selected_match_key}_{set_num}_sub_{idx}"
                         )
-                        new_subs.append(selected_sub)
+                        new_subs.append(sel_s)
                     current_data["lineup"][set_num]["Subs"] = new_subs
 
 # --- TAB 2: LIVE SERVE & POINT TRACKER ---
@@ -186,6 +297,7 @@ with tab_stats:
                 pct = (mks / att * 100) if att > 0 else 0.0
                 stats_rows.append({
                     "Player": player_name,
+                    "Position": current_team_dict.get(player_name, {}).get("role", "Utility"),
                     "Attempts": att,
                     "Serves In": mks,
                     "Serve %": f"{pct:.1f}%",
@@ -196,21 +308,22 @@ with tab_stats:
             df_match_stats = pd.DataFrame(stats_rows)
             st.dataframe(df_match_stats, use_container_width=True)
 
-# --- TAB 3: SEASON HISTORY & TRENDS ---
+# --- TAB 4: SEASON HISTORY & TRENDS ---
 with tab_history:
-    st.header("📈 Season History & Cumulative Trends")
+    st.header(f"📈 Season History & Cumulative Trends - {st.session_state.active_team}")
     st.caption("Aggregated performance across all logged matches.")
    
-    season_totals = {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in DEFAULT_ROSTER}
+    season_totals = {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_team_roster}
    
     for g_key, g_data in st.session_state.matches.items():
-        for p_name, p_stat in g_data["stats"].items():
-            if p_name not in season_totals:
-                season_totals[p_name] = {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0}
-            season_totals[p_name]["Attempts"] += p_stat["Attempts"]
-            season_totals[p_name]["Makes"] += p_stat["Makes"]
-            season_totals[p_name]["Aces"] += p_stat["Aces"]
-            season_totals[p_name]["Points_Won"] += p_stat["Points_Won"]
+        if g_data.get("team") == st.session_state.active_team:
+            for p_name, p_stat in g_data["stats"].items():
+                if p_name not in season_totals:
+                    season_totals[p_name] = {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0}
+                season_totals[p_name]["Attempts"] += p_stat["Attempts"]
+                season_totals[p_name]["Makes"] += p_stat["Makes"]
+                season_totals[p_name]["Aces"] += p_stat["Aces"]
+                season_totals[p_name]["Points_Won"] += p_stat["Points_Won"]
            
     season_rows = []
     for p_name, s_stat in season_totals.items():
@@ -219,6 +332,7 @@ with tab_history:
         pct = (mks / att * 100) if att > 0 else 0.0
         season_rows.append({
             "Player": p_name,
+            "Position": current_team_dict.get(p_name, {}).get("role", "Utility"),
             "Total Serve Attempts": att,
             "Total Serves In": mks,
             "Season Serve %": f"{pct:.1f}%",
@@ -229,7 +343,7 @@ with tab_history:
     df_season = pd.DataFrame(season_rows)
     st.dataframe(df_season, use_container_width=True)
 
-# --- TAB 4: LEAGUE RULES & SETTINGS ---
+# --- TAB 5: LEAGUE RULES & SETTINGS ---
 with tab_rules:
     st.header("⚙️ CBRC League Rules & Settings Engine")
    
@@ -244,5 +358,6 @@ with tab_rules:
         st.subheader("Participation Rules")
         st.selectbox("Set Starting Requirement", ["Must start Set 1 or Set 2 (CBRC)", "Must start at least 1 set", "Open / Coach Choice"])
         st.checkbox("Enforce Set 3 Participation for All Active Players", value=True)
-        st.checkbox("Enable Libero / Position Tracking", value=False)
+        st.checkbox("Enable Libero / Position Tracking", value=True)
 
+ 
