@@ -11,10 +11,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- PERMANENT FILE STORAGE PATH ---
-DATA_FILE = "roster_data.json"
+# --- PERMANENT FILE STORAGE PATHS ---
+ROSTER_FILE = "roster_data.json"
+MATCHES_FILE = "match_archive.json"
 
-# DEFAULT ROSTER DATA (FALLBACK)
+# DEFAULT FALLBACK ROSTER
 DEFAULT_ROSTER = {
     "Quinn": {"tier": "Anchor", "role": "Setter (S)", "buddy": "Claire"},
     "Claire": {"tier": "Developing", "role": "Outside Hitter (OH)", "buddy": "Quinn"},
@@ -29,53 +30,55 @@ DEFAULT_ROSTER = {
     "Ella": {"tier": "Anchor / Floating Rotator", "role": "Universal / Utility", "buddy": "None (Floating)"}
 }
 
-# HELPER FUNCTIONS FOR PERMANENT FILE READING/WRITING
-def load_permanent_roster():
-    if os.path.exists(DATA_FILE):
+# DEFAULT FALLBACK MATCH ARCHIVE
+DEFAULT_MATCHES = {
+    "Game 1 vs Velocity (10/07/2026)": {
+        "team": "Volley Llamas (CBRC Team 4)",
+        "date": "2026-10-07",
+        "opponent": "Velocity",
+        "mode": "Buddy System (Equal Play / Rec)",
+        "active_players": list(DEFAULT_ROSTER.keys()),
+        "lineup": {
+            "Set 1": {
+                "Starters": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Ella"],
+                "Subs": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Open / Continuous"]
+            },
+            "Set 2": {
+                "Starters": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Ella"],
+                "Subs": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Open / Continuous"]
+            },
+            "Set 3": {
+                "Starters": ["Alivia", "Quinn", "Heidi", "Ellie", "Lillian", "Emmalani"],
+                "Subs": ["Khloe", "Claire", "Lola", "Brinley", "Emmalani", "Ella"]
+            }
+        },
+        "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in DEFAULT_ROSTER.keys()}
+    }
+}
+
+# --- FILE PERSISTENCE HELPERS ---
+def load_data(file_path, default_data):
+    if os.path.exists(file_path):
         try:
-            with open(DATA_FILE, "r") as f:
+            with open(file_path, "r") as f:
                 return json.load(f)
         except Exception:
-            return DEFAULT_ROSTER
-    return DEFAULT_ROSTER
+            return default_data
+    return default_data
 
-def save_permanent_roster(roster_data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(roster_data, f, indent=4)
+def save_data(file_path, data):
+    with open(file_path, "w") as f:
+        json.dump(data, f, indent=4)
 
-# --- INITIALIZE ROSTER FROM PERMANENT STORAGE ---
+# --- INITIALIZE PERMANENT SESSION STATE ---
 if "roster" not in st.session_state:
-    st.session_state["roster"] = load_permanent_roster()
+    st.session_state["roster"] = load_data(ROSTER_FILE, DEFAULT_ROSTER)
+
+if "matches" not in st.session_state:
+    st.session_state["matches"] = load_data(MATCHES_FILE, DEFAULT_MATCHES)
 
 active_team = "Volley Llamas (CBRC Team 4)"
 active_team_roster = list(st.session_state["roster"].keys())
-
-# --- INITIALIZE SESSION STATE MATCH ARCHIVE ---
-if "matches" not in st.session_state:
-    st.session_state["matches"] = {
-        "Game 1 vs Velocity (10/07/2026)": {
-            "team": active_team,
-            "date": "2026-10-07",
-            "opponent": "Velocity",
-            "mode": "Buddy System (Equal Play / Rec)",
-            "active_players": active_team_roster,
-            "lineup": {
-                "Set 1": {
-                    "Starters": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Ella"],
-                    "Subs": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Open / Continuous"]
-                },
-                "Set 2": {
-                    "Starters": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Ella"],
-                    "Subs": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Open / Continuous"]
-                },
-                "Set 3": {
-                    "Starters": ["Alivia", "Quinn", "Heidi", "Ellie", "Lillian", "Emmalani"],
-                    "Subs": ["Khloe", "Claire", "Lola", "Brinley", "Emmalani", "Ella"]
-                }
-            },
-            "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_team_roster}
-        }
-    }
 
 # --- GLOBAL TOP BAR ---
 st.title("🏐 CBRC Volley Llamas - Lineup, Stat & Rotation Hub")
@@ -98,7 +101,7 @@ tab_lineup, tab_court, tab_stats, tab_roles, tab_history, tab_rules = st.tabs([
     "⚙️ League Rules & Settings"
 ])
 
-# --- TAB 1: LINEUP GENERATOR ---
+# --- TAB 1: LINEUP GENERATOR (PERMANENTLY SAVED) ---
 with tab_lineup:
     st.header(f"📋 Lineup Generator - {active_team}")
    
@@ -115,7 +118,7 @@ with tab_lineup:
         active_list = st.multiselect("Active Roster Today:", active_team_roster, default=active_team_roster)
         rot_style = st.selectbox("Select Rotation System:", ["Buddy System (Equal Play / Rec)", "Fixed Core Positions (Setters, Libero, OH, MB)"])
        
-        if st.button("🚀 Generate Match Lineup"):
+        if st.button("🚀 Generate & Permanently Save Match"):
             st.session_state["matches"][match_title] = {
                 "team": active_team,
                 "date": str(game_date),
@@ -138,7 +141,9 @@ with tab_lineup:
                 },
                 "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_list}
             }
-            st.success(f"Generated Lineup for {match_title}!")
+            # WRITE MATCH TO PERMANENT FILE
+            save_data(MATCHES_FILE, st.session_state["matches"])
+            st.success(f"💾 Permanently saved {match_title} to cloud memory!")
             st.rerun()
            
     else:
@@ -182,6 +187,10 @@ with tab_lineup:
                         )
                         new_subs.append(sel_s)
                     current_data["lineup"][set_num]["Subs"] = new_subs
+               
+        if st.button("💾 Permanently Save Lineup Edits"):
+            save_data(MATCHES_FILE, st.session_state["matches"])
+            st.success("💾 Saved modified lineup changes permanently!")
 
 # --- TAB 2: VISUAL COURT POSITIONS ---
 with tab_court:
@@ -222,7 +231,7 @@ with tab_court:
         with br3:
             st.metric(label="Pos 1 (Back Right / Server)", value=p1, delta=f"1st Server | {st.session_state['roster'].get(p1, {}).get('role', 'Utility')} | {st.session_state['roster'].get(p1, {}).get('tier', 'Developing')}")
 
-# --- TAB 3: LIVE SERVE & POINT TRACKER ---
+# --- TAB 3: LIVE SERVE & POINT TRACKER (PERMANENT STAT AUTO-SAVE) ---
 with tab_stats:
     st.header("📊 Live Courtside Serve & Point Tracker")
    
@@ -243,20 +252,24 @@ with tab_stats:
                 if st.button("✅ Serve IN"):
                     active_match["stats"][server]["Attempts"] += 1
                     active_match["stats"][server]["Makes"] += 1
-                    st.toast(f"Logged Serve IN for {server}")
+                    save_data(MATCHES_FILE, st.session_state["matches"])
+                    st.toast(f"Logged & Saved Serve IN for {server}")
                 if st.button("🔥 ACE!"):
                     active_match["stats"][server]["Attempts"] += 1
                     active_match["stats"][server]["Makes"] += 1
                     active_match["stats"][server]["Aces"] += 1
                     active_match["stats"][server]["Points_Won"] += 1
-                    st.toast(f"Logged ACE for {server}!")
+                    save_data(MATCHES_FILE, st.session_state["matches"])
+                    st.toast(f"Logged & Saved ACE for {server}!")
             with b2:
                 if st.button("❌ Serve Out / Net"):
                     active_match["stats"][server]["Attempts"] += 1
-                    st.toast(f"Logged Serve Out for {server}")
+                    save_data(MATCHES_FILE, st.session_state["matches"])
+                    st.toast(f"Logged & Saved Serve Out for {server}")
                 if st.button("🏆 Point Scored on Serve"):
                     active_match["stats"][server]["Points_Won"] += 1
-                    st.toast(f"Logged Point Won on {server}'s serve!")
+                    save_data(MATCHES_FILE, st.session_state["matches"])
+                    st.toast(f"Logged & Saved Point Won on {server}'s serve!")
 
         with col_view:
             st.subheader(f"Match Box Score - {selected_match_key}")
@@ -291,7 +304,7 @@ with tab_stats:
 # --- TAB 4: ROSTER, SKILL TIERS & POSITIONS (PERMANENT SAVING) ---
 with tab_roles:
     st.header(f"👥 Roster & Position Settings - {active_team}")
-    st.info("💡 **Permanent Auto-Save:** Select a player and update their tier or position. Clicking save writes the update directly to permanent cloud storage!")
+    st.info("💡 **Permanent Auto-Save:** Updates write directly to permanent storage files!")
    
     tier_options = ["Anchor", "Playmaker", "Developing", "Server Specialist", "Anchor / Floating Rotator"]
     role_options = ["Setter (S)", "Libero / DS (L)", "Outside Hitter (OH)", "Middle Blocker (MB)", "Right Side (OPP)", "Defensive Specialist (DS)", "Universal / Utility"]
@@ -327,15 +340,12 @@ with tab_roles:
             submit_button = st.form_submit_button(label="💾 Save Player Profile Changes Permanently")
            
             if submit_button:
-                # Update session memory
                 st.session_state["roster"][edit_p] = {
                     "tier": new_t,
                     "role": new_r,
                     "buddy": new_b
                 }
-                # Write to permanent storage file
-                save_permanent_roster(st.session_state["roster"])
-               
+                save_data(ROSTER_FILE, st.session_state["roster"])
                 st.success(f"💾 Permanently saved {edit_p}! Tier: '{new_t}' | Position: '{new_r}'")
                 st.rerun()
 
