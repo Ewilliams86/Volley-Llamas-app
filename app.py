@@ -246,11 +246,3 @@ with tab_rules:
         st.checkbox("Enforce Set 3 Participation for All Active Players", value=True)
         st.checkbox("Enable Libero / Position Tracking", value=False)
 
- 
-Wave AI Assistant
-
-Tell me more about it
-
-Show me related topics
-
-Start prompt with selection
