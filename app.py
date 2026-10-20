@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import datetime
@@ -10,44 +9,32 @@ st.set_page_config(
     layout="wide"
 )
 
+DEFAULT_ROSTER = ["Heidi", "Quinn", "Alivia", "Lillian", "Ellie", "Ella", "Emmalani", "Claire", "Brinley", "Khloe", "Lola"]
+
 # --- INITIALIZE SESSION STATE ARCHIVE ---
 if "matches" not in st.session_state:
     st.session_state.matches = {
         "Game 1 vs Velocity (10/07/2026)": {
             "date": "2026-10-07",
             "opponent": "Velocity",
-            "active_players": ["Heidi", "Quinn", "Alivia", "Lillian", "Ellie", "Ella", "Emmalani", "Claire", "Brinley", "Khloe", "Lola"],
+            "active_players": DEFAULT_ROSTER,
             "lineup": {
                 "Set 1": {
                     "Starters": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Ella"],
-                    "Subs": ["Khloe (for Alivia)", "Quinn (for Claire)", "Lola (for Heidi)", "Ellie (for Brinley)", "Emmalani (for Lillian)", "Open / Continuous (for Ella)"]
+                    "Subs": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Open / Continuous"]
                 },
                 "Set 2": {
                     "Starters": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Ella"],
-                    "Subs": ["Alivia (for Khloe)", "Claire (for Quinn)", "Heidi (for Lola)", "Brinley (for Ellie)", "Lillian (for Emmalani)", "Open / Continuous (for Ella)"]
+                    "Subs": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Open / Continuous"]
                 },
                 "Set 3": {
                     "Starters": ["Alivia", "Quinn", "Heidi", "Ellie", "Lillian", "Emmalani"],
-                    "Subs": ["Khloe (for Alivia)", "Claire (for Quinn)", "Lola (for Heidi)", "Brinley (for Ellie)", "Emmalani (for Lillian)", "Ella (for Emmalani)"]
+                    "Subs": ["Khloe", "Claire", "Lola", "Brinley", "Emmalani", "Ella"]
                 }
             },
-            "stats": {
-                "Heidi": {"Attempts": 8, "Makes": 7, "Aces": 3, "Points_Won": 6},
-                "Alivia": {"Attempts": 6, "Makes": 6, "Aces": 2, "Points_Won": 5},
-                "Quinn": {"Attempts": 7, "Makes": 6, "Aces": 2, "Points_Won": 4},
-                "Lillian": {"Attempts": 5, "Makes": 5, "Aces": 1, "Points_Won": 3},
-                "Ellie": {"Attempts": 4, "Makes": 4, "Aces": 0, "Points_Won": 2},
-                "Ella": {"Attempts": 5, "Makes": 5, "Aces": 1, "Points_Won": 3},
-                "Emmalani": {"Attempts": 3, "Makes": 3, "Aces": 0, "Points_Won": 1},
-                "Claire": {"Attempts": 3, "Makes": 2, "Aces": 0, "Points_Won": 1},
-                "Brinley": {"Attempts": 2, "Makes": 1, "Aces": 0, "Points_Won": 0},
-                "Khloe": {"Attempts": 3, "Makes": 2, "Aces": 0, "Points_Won": 1},
-                "Lola": {"Attempts": 2, "Makes": 1, "Aces": 0, "Points_Won": 0}
-            }
+            "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in DEFAULT_ROSTER}
         }
     }
-
-DEFAULT_ROSTER = ["Heidi", "Quinn", "Alivia", "Lillian", "Ellie", "Ella", "Emmalani", "Claire", "Brinley", "Khloe", "Lola"]
 
 # --- GLOBAL MATCH SELECTOR (TOP BAR) ---
 st.title("🏐 CBRC Volley Llamas - Lineup & Stat Hub")
@@ -58,21 +45,21 @@ with col_m1:
     selected_match_key = st.selectbox("Select Active Game / Match Archive:", match_list)
 
 with col_m2:
-    st.write("") # Spacing
+    st.write("")
     if selected_match_key == "➕ Create New Game":
         st.info("Set up a new game below!")
 
 # --- APP NAVIGATION TABS ---
 tab_lineup, tab_stats, tab_history, tab_rules = st.tabs([
-    "📋 Lineup Generator",
+    "📋 Lineup Generator & Editor",
     "📊 Live Serve & Point Tracker",
     "📈 Season History & Trends",
     "⚙️ League Rules & Settings"
 ])
 
-# --- TAB 1: LINEUP GENERATOR ---
+# --- TAB 1: LINEUP GENERATOR & EDITABLE OVERRIDE ---
 with tab_lineup:
-    st.header("📋 Lineup Generator & Attendance")
+    st.header("📋 Lineup Generator & Manual Swap Editor")
    
     if selected_match_key == "➕ Create New Game":
         c1, c2, c3 = st.columns(3)
@@ -95,40 +82,63 @@ with tab_lineup:
                 "active_players": active_list,
                 "lineup": {
                     "Set 1": {
-                        "Starters": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Ella"][:len(active_list)],
-                        "Subs": ["Khloe (for Alivia)", "Quinn (for Claire)", "Lola (for Heidi)", "Ellie (for Brinley)", "Emmalani (for Lillian)", "Open"]
+                        "Starters": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Ella"],
+                        "Subs": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Open / Continuous"]
                     },
                     "Set 2": {
-                        "Starters": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Ella"][:len(active_list)],
-                        "Subs": ["Alivia (for Khloe)", "Claire (for Quinn)", "Heidi (for Lola)", "Brinley (for Ellie)", "Lillian (for Emmalani)", "Open"]
+                        "Starters": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Ella"],
+                        "Subs": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Open / Continuous"]
                     },
                     "Set 3": {
-                        "Starters": ["Alivia", "Quinn", "Heidi", "Ellie", "Lillian", "Emmalani"][:len(active_list)],
-                        "Subs": ["Khloe (for Alivia)", "Claire (for Quinn)", "Lola (for Heidi)", "Brinley (for Ellie)", "Emmalani (for Lillian)", "Ella (for Emmalani)"]
+                        "Starters": ["Alivia", "Quinn", "Heidi", "Ellie", "Lillian", "Emmalani"],
+                        "Subs": ["Khloe", "Claire", "Lola", "Brinley", "Emmalani", "Ella"]
                     }
                 },
                 "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_list}
             }
-            st.success(f"Created {match_title}! Select it in the top dropdown to view & track stats.")
+            st.success(f"Created {match_title}! Select it in the top dropdown to view, edit, or track stats.")
             st.rerun()
            
     else:
         current_data = st.session_state.matches[selected_match_key]
         st.subheader(f"Active Match: {selected_match_key}")
-        st.caption(f"Active Roster Count: {len(current_data['active_players'])} players")
+        st.info("💡 **Coaching Tip:** You or Coach Ashley can manually edit or swap any starter or sub position using the drop-down selectors below!")
        
         s1, s2, s3 = st.tabs(["Set 1 Lineup", "Set 2 Lineup", "Set 3 Lineup"])
         for set_num, set_tab in zip(["Set 1", "Set 2", "Set 3"], [s1, s2, s3]):
             with set_tab:
                 col_st, col_su = st.columns(2)
+               
+                # Editable Starting 6
                 with col_st:
-                    st.markdown("### 🏐 Starting 6")
-                    for idx, p in enumerate(current_data["lineup"][set_num]["Starters"], 1):
-                        st.write(f"**Serve Order {idx}:** {p}")
+                    st.markdown("### 🏐 Starting 6 (Editable)")
+                    new_starters = []
+                    for idx in range(6):
+                        current_player = current_data["lineup"][set_num]["Starters"][idx] if idx < len(current_data["lineup"][set_num]["Starters"]) else DEFAULT_ROSTER[0]
+                        selected_player = st.selectbox(
+                            f"Serve Order {idx+1}:",
+                            DEFAULT_ROSTER,
+                            index=DEFAULT_ROSTER.index(current_player) if current_player in DEFAULT_ROSTER else 0,
+                            key=f"{selected_match_key}_{set_num}_starter_{idx}"
+                        )
+                        new_starters.append(selected_player)
+                    current_data["lineup"][set_num]["Starters"] = new_starters
+
+                # Editable Subs
                 with col_su:
-                    st.markdown("### 🔄 Bench Substitutes")
-                    for idx, s in enumerate(current_data["lineup"][set_num]["Subs"], 1):
-                        st.write(f"**Sub Line {idx}:** {s}")
+                    st.markdown("### 🔄 Bench Substitutes (Editable)")
+                    sub_options = DEFAULT_ROSTER + ["Open / Continuous"]
+                    new_subs = []
+                    for idx in range(6):
+                        current_sub = current_data["lineup"][set_num]["Subs"][idx] if idx < len(current_data["lineup"][set_num]["Subs"]) else "Open / Continuous"
+                        selected_sub = st.selectbox(
+                            f"Sub Line {idx+1}:",
+                            sub_options,
+                            index=sub_options.index(current_sub) if current_sub in sub_options else 0,
+                            key=f"{selected_match_key}_{set_num}_sub_{idx}"
+                        )
+                        new_subs.append(selected_sub)
+                    current_data["lineup"][set_num]["Subs"] = new_subs
 
 # --- TAB 2: LIVE SERVE & POINT TRACKER ---
 with tab_stats:
@@ -237,3 +247,10 @@ with tab_rules:
         st.checkbox("Enable Libero / Position Tracking", value=False)
 
  
+Wave AI Assistant
+
+Tell me more about it
+
+Show me related topics
+
+Start prompt with selection
