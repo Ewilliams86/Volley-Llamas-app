@@ -9,38 +9,35 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- VOLLEY LLAMAS DEFAULT ROSTER & POSITIONAL SETUP ---
-DEFAULT_TEAMS = {
-    "Volley Llamas (CBRC Team 4)": {
-        "Quinn": {"tier": "Anchor", "role": "Setter (S)", "buddy": "Claire"},
-        "Claire": {"tier": "Developing", "role": "Outside Hitter (OH)", "buddy": "Quinn"},
-        "Heidi": {"tier": "Anchor", "role": "Outside Hitter (OH)", "buddy": "Lola"},
-        "Lola": {"tier": "Developing", "role": "Defensive Specialist (DS)", "buddy": "Heidi"},
-        "Alivia": {"tier": "Anchor", "role": "Setter (S)", "buddy": "Khloe"},
-        "Khloe": {"tier": "Developing", "role": "Right Side (OPP)", "buddy": "Alivia"},
-        "Ellie": {"tier": "Playmaker", "role": "Middle Blocker (MB)", "buddy": "Brinley"},
-        "Brinley": {"tier": "Developing", "role": "Outside Hitter (OH)", "buddy": "Ellie"},
-        "Lillian": {"tier": "Playmaker", "role": "Libero / DS (L)", "buddy": "Emmalani"},
-        "Emmalani": {"tier": "Playmaker", "role": "Middle Blocker (MB)", "buddy": "Lillian"},
-        "Ella": {"tier": "Anchor / Floating Rotator", "role": "Universal / Utility", "buddy": "None (Floating)"}
-    }
-}
-
+# --- ONE-TIME SESSION STATE INITIALIZATION ---
 if "team_rosters" not in st.session_state:
-    st.session_state.team_rosters = DEFAULT_TEAMS
+    st.session_state["team_rosters"] = {
+        "Volley Llamas (CBRC Team 4)": {
+            "Quinn": {"tier": "Anchor", "role": "Setter (S)", "buddy": "Claire"},
+            "Claire": {"tier": "Developing", "role": "Outside Hitter (OH)", "buddy": "Quinn"},
+            "Heidi": {"tier": "Anchor", "role": "Outside Hitter (OH)", "buddy": "Lola"},
+            "Lola": {"tier": "Developing", "role": "Defensive Specialist (DS)", "buddy": "Heidi"},
+            "Alivia": {"tier": "Anchor", "role": "Setter (S)", "buddy": "Khloe"},
+            "Khloe": {"tier": "Developing", "role": "Right Side (OPP)", "buddy": "Alivia"},
+            "Ellie": {"tier": "Playmaker", "role": "Middle Blocker (MB)", "buddy": "Brinley"},
+            "Brinley": {"tier": "Developing", "role": "Outside Hitter (OH)", "buddy": "Ellie"},
+            "Lillian": {"tier": "Playmaker", "role": "Libero / DS (L)", "buddy": "Emmalani"},
+            "Emmalani": {"tier": "Playmaker", "role": "Middle Blocker (MB)", "buddy": "Lillian"},
+            "Ella": {"tier": "Anchor / Floating Rotator", "role": "Universal / Utility", "buddy": "None (Floating)"}
+        }
+    }
 
 if "active_team" not in st.session_state:
-    st.session_state.active_team = "Volley Llamas (CBRC Team 4)"
+    st.session_state["active_team"] = "Volley Llamas (CBRC Team 4)"
 
-# Current Active Team Roster & Dict
-current_team_dict = st.session_state.team_rosters[st.session_state.active_team]
-active_team_roster = list(current_team_dict.keys())
+active_team = st.session_state["active_team"]
+active_team_roster = list(st.session_state["team_rosters"][active_team].keys())
 
-# --- INITIALIZE SESSION STATE ARCHIVE ---
+# --- INITIALIZE SESSION STATE MATCH ARCHIVE ---
 if "matches" not in st.session_state:
-    st.session_state.matches = {
+    st.session_state["matches"] = {
         "Game 1 vs Velocity (10/07/2026)": {
-            "team": "Volley Llamas (CBRC Team 4)",
+            "team": active_team,
             "date": "2026-10-07",
             "opponent": "Velocity",
             "mode": "Buddy System (Equal Play / Rec)",
@@ -63,15 +60,15 @@ if "matches" not in st.session_state:
         }
     }
 
-# --- GLOBAL MATCH SELECTOR (TOP BAR) ---
+# --- GLOBAL TOP BAR ---
 st.title("🏐 CBRC Volley Llamas - Lineup, Stat & Rotation Hub")
 
 col_top1, col_top2 = st.columns([1, 2])
 with col_top1:
-    st.subheader(f"Team: {st.session_state.active_team}")
+    st.subheader(f"Team: {active_team}")
 
 with col_top2:
-    match_list = list(st.session_state.matches.keys()) + ["➕ Create New Game"]
+    match_list = list(st.session_state["matches"].keys()) + ["➕ Create New Game"]
     selected_match_key = st.selectbox("Select Active Game / Match Archive:", match_list)
 
 # --- APP NAVIGATION TABS ---
@@ -86,7 +83,7 @@ tab_lineup, tab_court, tab_stats, tab_roles, tab_history, tab_rules = st.tabs([
 
 # --- TAB 1: LINEUP GENERATOR & EDITABLE OVERRIDE ---
 with tab_lineup:
-    st.header(f"📋 Lineup Generator - {st.session_state.active_team}")
+    st.header(f"📋 Lineup Generator - {active_team}")
    
     if selected_match_key == "➕ Create New Game":
         c1, c2, c3 = st.columns(3)
@@ -99,17 +96,11 @@ with tab_lineup:
        
         match_title = f"{game_num} vs {opp_name} ({game_date.strftime('%m/%d/%Y')})"
         active_list = st.multiselect("Active Roster Today:", active_team_roster, default=active_team_roster)
-       
-        rot_style = st.selectbox(
-            "Select Rotation System:",
-            ["Buddy System (Equal Play / Rec)", "Fixed Core Positions (Setters, Libero, OH, MB)"]
-        )
-       
-        enforce_rules = st.checkbox("Enforce CBRC Rules (Mandatory Set 1/2 Starts, 4 Sub Credits, Max 3 Subs/Stoppage)", value=True)
+        rot_style = st.selectbox("Select Rotation System:", ["Buddy System (Equal Play / Rec)", "Fixed Core Positions (Setters, Libero, OH, MB)"])
        
         if st.button("🚀 Generate Match Lineup"):
-            st.session_state.matches[match_title] = {
-                "team": st.session_state.active_team,
+            st.session_state["matches"][match_title] = {
+                "team": active_team,
                 "date": str(game_date),
                 "opponent": opp_name,
                 "mode": rot_style,
@@ -130,28 +121,26 @@ with tab_lineup:
                 },
                 "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_list}
             }
-            st.success(f"Generated 100% Rule-Compliant Lineup for {match_title} using '{rot_style}'!")
+            st.success(f"Generated Rule-Compliant Lineup for {match_title}!")
             st.rerun()
            
     else:
-        current_data = st.session_state.matches[selected_match_key]
+        current_data = st.session_state["matches"][selected_match_key]
         st.subheader(f"Active Match: {selected_match_key}")
         st.caption(f"System Mode: **{current_data.get('mode', 'Buddy System')}** | CBRC Rule Compliant: ✅ YES")
-        st.info("💡 **Manual Override:** You or Coach Ashley can manually swap any starter or sub position using the drop-downs below!")
        
         s1, s2, s3 = st.tabs(["Set 1 Lineup", "Set 2 Lineup", "Set 3 Lineup"])
         for set_num, set_tab in zip(["Set 1", "Set 2", "Set 3"], [s1, s2, s3]):
             with set_tab:
                 col_st, col_su = st.columns(2)
                
-                # Editable Starting 6
                 with col_st:
                     st.markdown("### 🏐 Starting 6 (Editable)")
                     new_starters = []
                     for idx in range(6):
                         curr_p = current_data["lineup"][set_num]["Starters"][idx] if idx < len(current_data["lineup"][set_num]["Starters"]) else active_team_roster[0]
-                        p_role_tag = st.session_state.team_rosters[st.session_state.active_team].get(curr_p, {}).get("role", "Utility")
-                        p_tier_tag = st.session_state.team_rosters[st.session_state.active_team].get(curr_p, {}).get("tier", "Developing")
+                        p_role_tag = st.session_state["team_rosters"][active_team].get(curr_p, {}).get("role", "Utility")
+                        p_tier_tag = st.session_state["team_rosters"][active_team].get(curr_p, {}).get("tier", "Developing")
                        
                         sel_p = st.selectbox(
                             f"Serve Order {idx+1} [{p_role_tag} - {p_tier_tag}]:",
@@ -162,7 +151,6 @@ with tab_lineup:
                         new_starters.append(sel_p)
                     current_data["lineup"][set_num]["Starters"] = new_starters
 
-                # Editable Subs
                 with col_su:
                     st.markdown("### 🔄 Bench Substitutes (Editable)")
                     sub_opts = active_team_roster + ["Open / Continuous"]
@@ -185,9 +173,8 @@ with tab_court:
     if selected_match_key == "➕ Create New Game":
         st.warning("Please select or create an active game in the top dropdown to view the court diagram.")
     else:
-        current_data = st.session_state.matches[selected_match_key]
+        current_data = st.session_state["matches"][selected_match_key]
         set_choice = st.radio("Select Set to Display on Court:", ["Set 1", "Set 2", "Set 3"], horizontal=True)
-       
         starters = current_data["lineup"][set_choice]["Starters"]
        
         p1 = starters[0] if len(starters) > 0 else "Open"
@@ -200,25 +187,23 @@ with tab_court:
         st.markdown("### 🏐 Court Formation - Front Row & Back Row")
         st.markdown("--- **NET** ---")
        
-        # Front Row
         fr1, fr2, fr3 = st.columns(3)
         with fr1:
-            st.metric(label="Pos 4 (Front Left)", value=p4, delta=f"{st.session_state.team_rosters[st.session_state.active_team].get(p4, {}).get('role', 'Utility')} | {st.session_state.team_rosters[st.session_state.active_team].get(p4, {}).get('tier', 'Developing')}")
+            st.metric(label="Pos 4 (Front Left)", value=p4, delta=f"{st.session_state['team_rosters'][active_team].get(p4, {}).get('role', 'Utility')} | {st.session_state['team_rosters'][active_team].get(p4, {}).get('tier', 'Developing')}")
         with fr2:
-            st.metric(label="Pos 3 (Front Center)", value=p3, delta=f"{st.session_state.team_rosters[st.session_state.active_team].get(p3, {}).get('role', 'Utility')} | {st.session_state.team_rosters[st.session_state.active_team].get(p3, {}).get('tier', 'Developing')}")
+            st.metric(label="Pos 3 (Front Center)", value=p3, delta=f"{st.session_state['team_rosters'][active_team].get(p3, {}).get('role', 'Utility')} | {st.session_state['team_rosters'][active_team].get(p3, {}).get('tier', 'Developing')}")
         with fr3:
-            st.metric(label="Pos 2 (Front Right)", value=p2, delta=f"{st.session_state.team_rosters[st.session_state.active_team].get(p2, {}).get('role', 'Utility')} | {st.session_state.team_rosters[st.session_state.active_team].get(p2, {}).get('tier', 'Developing')}")
+            st.metric(label="Pos 2 (Front Right)", value=p2, delta=f"{st.session_state['team_rosters'][active_team].get(p2, {}).get('role', 'Utility')} | {st.session_state['team_rosters'][active_team].get(p2, {}).get('tier', 'Developing')}")
            
         st.markdown("--- 3-Meter Attack Line ---")
        
-        # Back Row
         br1, br2, br3 = st.columns(3)
         with br1:
-            st.metric(label="Pos 5 (Back Left)", value=p5, delta=f"{st.session_state.team_rosters[st.session_state.active_team].get(p5, {}).get('role', 'Utility')} | {st.session_state.team_rosters[st.session_state.active_team].get(p5, {}).get('tier', 'Developing')}")
+            st.metric(label="Pos 5 (Back Left)", value=p5, delta=f"{st.session_state['team_rosters'][active_team].get(p5, {}).get('role', 'Utility')} | {st.session_state['team_rosters'][active_team].get(p5, {}).get('tier', 'Developing')}")
         with br2:
-            st.metric(label="Pos 6 (Back Center)", value=p6, delta=f"{st.session_state.team_rosters[st.session_state.active_team].get(p6, {}).get('role', 'Utility')} | {st.session_state.team_rosters[st.session_state.active_team].get(p6, {}).get('tier', 'Developing')}")
+            st.metric(label="Pos 6 (Back Center)", value=p6, delta=f"{st.session_state['team_rosters'][active_team].get(p6, {}).get('role', 'Utility')} | {st.session_state['team_rosters'][active_team].get(p6, {}).get('tier', 'Developing')}")
         with br3:
-            st.metric(label="Pos 1 (Back Right / Server)", value=p1, delta=f"1st Server | {st.session_state.team_rosters[st.session_state.active_team].get(p1, {}).get('role', 'Utility')} | {st.session_state.team_rosters[st.session_state.active_team].get(p1, {}).get('tier', 'Developing')}")
+            st.metric(label="Pos 1 (Back Right / Server)", value=p1, delta=f"1st Server | {st.session_state['team_rosters'][active_team].get(p1, {}).get('role', 'Utility')} | {st.session_state['team_rosters'][active_team].get(p1, {}).get('tier', 'Developing')}")
 
 # --- TAB 3: LIVE SERVE & POINT TRACKER ---
 with tab_stats:
@@ -227,7 +212,7 @@ with tab_stats:
     if selected_match_key == "➕ Create New Game":
         st.warning("Please select or create an active game in the top dropdown to start tracking stats.")
     else:
-        active_match = st.session_state.matches[selected_match_key]
+        active_match = st.session_state["matches"][selected_match_key]
         p_list = active_match["active_players"]
        
         col_ctrl, col_view = st.columns([1, 2])
@@ -266,8 +251,8 @@ with tab_stats:
                 pct = (mks / att * 100) if att > 0 else 0.0
                 stats_rows.append({
                     "Player": player_name,
-                    "Position": st.session_state.team_rosters[st.session_state.active_team].get(player_name, {}).get("role", "Utility"),
-                    "Tier": st.session_state.team_rosters[st.session_state.active_team].get(player_name, {}).get("tier", "Developing"),
+                    "Position": st.session_state["team_rosters"][active_team].get(player_name, {}).get("role", "Utility"),
+                    "Tier": st.session_state["team_rosters"][active_team].get(player_name, {}).get("tier", "Developing"),
                     "Attempts": att,
                     "Serves In": mks,
                     "Serve %": f"{pct:.1f}%",
@@ -278,7 +263,6 @@ with tab_stats:
             df_match_stats = pd.DataFrame(stats_rows)
             st.dataframe(df_match_stats, use_container_width=True)
            
-            # CSV Download Button
             csv_data = df_match_stats.to_csv(index=False).encode('utf-8')
             st.download_button(
                 label="📥 Download Match Stats to CSV / Google Sheets",
@@ -287,10 +271,10 @@ with tab_stats:
                 mime="text/csv"
             )
 
-# --- TAB 4: ROSTER, SKILL TIERS & POSITIONS (FIXED SAVE LOGIC) ---
+# --- TAB 4: ROSTER, SKILL TIERS & POSITIONS (FORM LOCKED) ---
 with tab_roles:
-    st.header(f"👥 Roster & Position Settings - {st.session_state.active_team}")
-    st.info("💡 **Coaching Controls:** Set up player tiers (Anchor, Playmaker, Developing, Server Specialist), assigned court roles (Setters, Libero, Hitters), and Buddy System pairs here.")
+    st.header(f"👥 Roster & Position Settings - {active_team}")
+    st.info("💡 **Coaching Controls:** Use the form below to change any player's skill tier or court position. Changes will lock in immediately when you submit!")
    
     tier_options = ["Anchor", "Playmaker", "Developing", "Server Specialist", "Anchor / Floating Rotator"]
     role_options = ["Setter (S)", "Libero / DS (L)", "Outside Hitter (OH)", "Middle Blocker (MB)", "Right Side (OPP)", "Defensive Specialist (DS)", "Universal / Utility"]
@@ -298,49 +282,50 @@ with tab_roles:
    
     col_r1, col_r2 = st.columns(2)
    
-    role_rows = []
-    for p_name, p_data in st.session_state.team_rosters[st.session_state.active_team].items():
-        role_rows.append({
-            "Player": p_name,
-            "Skill Tier": p_data.get("tier", "Developing"),
-            "Court Role / Position": p_data.get("role", "Universal / Utility"),
-            "Buddy Partner": p_data.get("buddy", "Open")
-        })
-   
     with col_r1:
-        st.subheader("Current Volley Llamas Roster & Roles")
+        st.subheader("Current Roster Overview")
+        role_rows = []
+        for p_name, p_data in st.session_state["team_rosters"][active_team].items():
+            role_rows.append({
+                "Player": p_name,
+                "Skill Tier": p_data.get("tier", "Developing"),
+                "Court Position": p_data.get("role", "Universal / Utility"),
+                "Buddy Partner": p_data.get("buddy", "Open")
+            })
         st.dataframe(pd.DataFrame(role_rows), use_container_width=True)
        
     with col_r2:
-        st.subheader("Edit Player Role / Skill Tier")
-        edit_p = st.selectbox("Select Player to Update:", active_team_roster, key="edit_player_select")
+        st.subheader("Update Player Profile")
+        edit_p = st.selectbox("Select Player to Update:", active_team_roster, key="edit_player_dropdown")
        
-        curr_tier = st.session_state.team_rosters[st.session_state.active_team][edit_p].get("tier", "Developing")
-        curr_role = st.session_state.team_rosters[st.session_state.active_team][edit_p].get("role", "Universal / Utility")
-        curr_buddy = st.session_state.team_rosters[st.session_state.active_team][edit_p].get("buddy", "Open")
-       
-        new_t = st.selectbox("Assigned Skill Tier:", tier_options, index=tier_options.index(curr_tier) if curr_tier in tier_options else 0, key=f"t_{edit_p}")
-        new_r = st.selectbox("Assigned Position Role:", role_options, index=role_options.index(curr_role) if curr_role in role_options else 0, key=f"r_{edit_p}")
-        new_b = st.selectbox("Assigned Buddy Partner:", buddy_options, index=buddy_options.index(curr_buddy) if curr_buddy in buddy_options else 0, key=f"b_{edit_p}")
-       
-        if st.button("💾 Save Player Position Changes"):
-            st.session_state.team_rosters[st.session_state.active_team][edit_p] = {
-                "tier": new_t,
-                "role": new_r,
-                "buddy": new_b
-            }
-            st.success(f"Successfully updated {edit_p}! Tier: '{new_t}' | Role: '{new_r}'")
-            st.rerun()
+        # FORM BATCHING PREVENTS RESETTING MID-SELECTION
+        with st.form(key="player_tier_form"):
+            curr_tier = st.session_state["team_rosters"][active_team][edit_p].get("tier", "Developing")
+            curr_role = st.session_state["team_rosters"][active_team][edit_p].get("role", "Universal / Utility")
+            curr_buddy = st.session_state["team_rosters"][active_team][edit_p].get("buddy", "Open")
+           
+            new_t = st.selectbox("Assign Skill Tier:", tier_options, index=tier_options.index(curr_tier) if curr_tier in tier_options else 0)
+            new_r = st.selectbox("Assign Position Role:", role_options, index=role_options.index(curr_role) if curr_role in role_options else 0)
+            new_b = st.selectbox("Assign Buddy Partner:", buddy_options, index=buddy_options.index(curr_buddy) if curr_buddy in buddy_options else 0)
+           
+            submit_button = st.form_submit_button(label="💾 Save Player Profile Changes")
+           
+            if submit_button:
+                st.session_state["team_rosters"][active_team][edit_p] = {
+                    "tier": new_t,
+                    "role": new_r,
+                    "buddy": new_b
+                }
+                st.success(f"Successfully saved {edit_p}! Tier: '{new_t}' | Position: '{new_r}'")
+                st.rerun()
 
 # --- TAB 5: SEASON HISTORY & TRENDS ---
 with tab_history:
-    st.header(f"📈 Season History & Cumulative Trends - {st.session_state.active_team}")
-    st.caption("Aggregated performance across all logged matches.")
+    st.header(f"📈 Season History & Cumulative Trends - {active_team}")
    
     season_totals = {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_team_roster}
-   
-    for g_key, g_data in st.session_state.matches.items():
-        if g_data.get("team") == st.session_state.active_team:
+    for g_key, g_data in st.session_state["matches"].items():
+        if g_data.get("team") == active_team:
             for p_name, p_stat in g_data["stats"].items():
                 if p_name not in season_totals:
                     season_totals[p_name] = {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0}
@@ -356,8 +341,8 @@ with tab_history:
         pct = (mks / att * 100) if att > 0 else 0.0
         season_rows.append({
             "Player": p_name,
-            "Position": st.session_state.team_rosters[st.session_state.active_team].get(p_name, {}).get("role", "Utility"),
-            "Tier": st.session_state.team_rosters[st.session_state.active_team].get(p_name, {}).get("tier", "Developing"),
+            "Position": st.session_state["team_rosters"][active_team].get(p_name, {}).get("role", "Utility"),
+            "Tier": st.session_state["team_rosters"][active_team].get(p_name, {}).get("tier", "Developing"),
             "Total Serve Attempts": att,
             "Total Serves In": mks,
             "Season Serve %": f"{pct:.1f}%",
