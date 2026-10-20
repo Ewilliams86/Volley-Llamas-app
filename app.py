@@ -11,17 +11,14 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- CLEAN EXECUTIVE SPORTS CSS STYLING ---
+# --- CLEAN EXECUTIVE SPORTS STYLING ---
 st.markdown("""
     <style>
-    /* Dark Slate Court Surface Background */
     .stApp {
         background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
         color: #F8FAFC;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-   
-    /* Subtle Volleyball Net Pattern Overlay */
     .stApp::before {
         content: "";
         position: fixed;
@@ -31,67 +28,20 @@ st.markdown("""
         opacity: 0.15;
         pointer-events: none;
     }
-   
-    /* Clean Crisp Headers */
-    h1, h2, h3 {
-        color: #F8FAFC !important;
-        font-weight: 700;
-        letter-spacing: -0.5px;
-    }
-   
-    /* Professional Blue Subheaders & Accents */
-    .stMarkdown h3 {
-        color: #38BDF8 !important;
-        font-size: 1.1rem !important;
-    }
-
-    /* Refined Metric Cards */
-    div[data-testid="stMetricValue"] {
-        font-size: 24px !important;
-        font-weight: 600;
-        color: #38BDF8 !important;
-    }
-    div[data-testid="stMetric"] {
-        background-color: rgba(30, 41, 59, 0.7);
-        border: 1px solid #334155;
-        border-radius: 10px;
-        padding: 12px 16px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-   
-    /* Clean Tab Styling */
-    button[data-baseweb="tab"] {
-        font-size: 14px !important;
-        font-weight: 600;
-        color: #94A3B8;
-    }
-    button[aria-selected="true"] {
-        color: #38BDF8 !important;
-        border-bottom-color: #38BDF8 !important;
-    }
-   
-    /* Subtle Modern Buttons */
-    .stButton>button {
-        background-color: #0284C7;
-        color: #FFFFFF;
-        font-weight: 600;
-        border-radius: 6px;
-        border: none;
-        padding: 6px 14px;
-        transition: all 0.2s ease;
-    }
-    .stButton>button:hover {
-        background-color: #0369A1;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
+    h1, h2, h3 { color: #F8FAFC !important; font-weight: 700; }
+    .stMarkdown h3 { color: #38BDF8 !important; font-size: 1.1rem !important; }
+    div[data-testid="stMetricValue"] { font-size: 24px !important; font-weight: 600; color: #38BDF8 !important; }
+    div[data-testid="stMetric"] { background-color: rgba(30, 41, 59, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 12px 16px; }
+    button[data-baseweb="tab"] { font-size: 14px !important; font-weight: 600; color: #94A3B8; }
+    button[aria-selected="true"] { color: #38BDF8 !important; border-bottom-color: #38BDF8 !important; }
+    .stButton>button { background-color: #0284C7; color: #FFFFFF; font-weight: 600; border-radius: 6px; border: none; padding: 6px 14px; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- PERMANENT FILE STORAGE PATHS ---
+# --- PERMANENT FILE PATHS ---
 ROSTER_FILE = "roster_data.json"
 MATCHES_FILE = "match_archive.json"
 
-# DEFAULT ROSTER DATA
 DEFAULT_ROSTER = {
     "Quinn": {"tier": "Anchor", "role": "Setter (S)", "buddy": "Claire"},
     "Claire": {"tier": "Developing", "role": "Outside Hitter (OH)", "buddy": "Quinn"},
@@ -106,78 +56,38 @@ DEFAULT_ROSTER = {
     "Ella": {"tier": "Anchor / Floating Rotator", "role": "Universal / Utility", "buddy": "None (Floating)"}
 }
 
-DEFAULT_MATCHES = {
-    "Game 1 vs Velocity (10/07/2026)": {
-        "team": "Volley Llamas (CBRC Team 4)",
-        "date": "2026-10-07",
-        "opponent": "Velocity",
-        "mode": "Buddy System (Equal Play / Rec)",
-        "active_players": list(DEFAULT_ROSTER.keys()),
-        "lineup": {
-            "Set 1": {
-                "Starters": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Ella"],
-                "Subs": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Open / Continuous"]
-            },
-            "Set 2": {
-                "Starters": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Ella"],
-                "Subs": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Open / Continuous"]
-            },
-            "Set 3": {
-                "Starters": ["Alivia", "Quinn", "Heidi", "Ellie", "Lillian", "Emmalani"],
-                "Subs": ["Khloe", "Claire", "Lola", "Brinley", "Emmalani", "Ella"]
-            }
-        },
-        "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in DEFAULT_ROSTER.keys()}
-    }
-}
+DEFAULT_MATCHES = {}
 
-# --- FILE PERSISTENCE HELPERS ---
 def load_data(file_path, default_data):
     if os.path.exists(file_path):
         try:
-            with open(file_path, "r") as f:
-                return json.load(f)
-        except Exception:
-            return default_data
+            with open(file_path, "r") as f: return json.load(f)
+        except Exception: return default_data
     return default_data
 
 def save_data(file_path, data):
-    with open(file_path, "w") as f:
-        json.dump(data, f, indent=4)
+    with open(file_path, "w") as f: json.dump(data, f, indent=4)
 
 def auto_balance_buddies(roster_dict):
-    anchors_core = []
-    developing = []
-   
+    anchors_core, developing = [], []
     for p_name, p_data in roster_dict.items():
         t = p_data.get("tier", "Developing")
-        if "Floating" in t or "Floating" in p_data.get("buddy", ""):
-            continue
-        if t in ["Anchor", "Playmaker", "Server Specialist", "Defensive Specialist", "Anchor / Floating Rotator"]:
-            anchors_core.append(p_name)
-        else:
-            developing.append(p_name)
-           
+        if "Floating" in t or "Floating" in p_data.get("buddy", ""): continue
+        if t in ["Anchor", "Playmaker", "Server Specialist", "Defensive Specialist", "Anchor / Floating Rotator"]: anchors_core.append(p_name)
+        else: developing.append(p_name)
     pairs_count = min(len(anchors_core), len(developing))
     for i in range(pairs_count):
-        anc = anchors_core[i]
-        dev = developing[i]
+        anc, dev = anchors_core[i], developing[i]
         roster_dict[anc]["buddy"] = dev
         roster_dict[dev]["buddy"] = anc
-       
     return roster_dict
 
-# --- SESSION STATE INITIALIZATION ---
-if "roster" not in st.session_state:
-    st.session_state["roster"] = load_data(ROSTER_FILE, DEFAULT_ROSTER)
-
-if "matches" not in st.session_state:
-    st.session_state["matches"] = load_data(MATCHES_FILE, DEFAULT_MATCHES)
+if "roster" not in st.session_state: st.session_state["roster"] = load_data(ROSTER_FILE, DEFAULT_ROSTER)
+if "matches" not in st.session_state: st.session_state["matches"] = load_data(MATCHES_FILE, DEFAULT_MATCHES)
 
 active_team = "Volley Llamas (CBRC Team 4)"
 active_team_roster = list(st.session_state["roster"].keys())
 
-# --- TOP NAVIGATION BAR ---
 st.title("🏐 CBRC Volley Llamas - Lineup & Stat Hub")
 
 col_top1, col_top2 = st.columns([1, 2])
@@ -188,161 +98,176 @@ with col_top2:
     match_list = list(st.session_state["matches"].keys()) + ["➕ Create New Game"]
     selected_match_key = st.selectbox("Select Active Game / Archive:", match_list)
 
-# --- NAVIGATION TABS ---
 tab_lineup, tab_court, tab_stats, tab_roles, tab_history, tab_rules = st.tabs([
-    "📋 Lineup Generator",
-    "🏐 Court Diagram",
-    "📊 Live Serve Tracker",
-    "👥 Roster & Roles",
-    "📈 Season History",
-    "⚙️ League Rules"
+    "📋 Lineup Generator", "🏐 Court Diagram", "📊 Live Serve Tracker",
+    "👥 Roster & Roles", "📈 Season History", "⚙️ League Rules"
 ])
 
-# --- TAB 1: LINEUP GENERATOR ---
+# --- TAB 1: LINEUP GENERATOR WITH ENFORCED ABSENCE PURGE ---
 with tab_lineup:
     st.header(f"📋 Lineup Generator - {active_team}")
    
-    if selected_match_key == "➕ Create New Game":
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            game_num = st.text_input("Game Number/Name", "Game 2")
-        with c2:
-            opp_name = st.text_input("Opponent Name", "Blazers")
-        with c3:
-            game_date = st.date_input("Match Date", datetime.date.today())
+    # CALLBACK FUNCTION: ENFORCES ABSENCE REMOVAL IN REAL TIME
+    def purge_absent_players():
+        absent = st.session_state.get("absent_tracker_key", [])
+        avail = [p for p in active_team_roster if p not in absent]
        
-        match_title = f"{game_num} vs {opp_name} ({game_date.strftime('%m/%d/%Y')})"
-        active_list = st.multiselect("Active Roster Today:", active_team_roster, default=active_team_roster)
-        rot_style = st.selectbox("Select Rotation System:", ["Buddy System (Equal Play / Rec)", "Fixed Core Positions (Setters, Libero, OH, MB)"])
+        if selected_match_key != "➕ Create New Game" and selected_match_key in st.session_state["matches"]:
+            m_data = st.session_state["matches"][selected_match_key]
+            m_data["active_players"] = avail
+           
+            for set_k in ["Set 1", "Set 2", "Set 3"]:
+                # Filter starters
+                m_data["lineup"][set_k]["Starters"] = [p for p in m_data["lineup"][set_k]["Starters"] if p in avail]
+                while len(m_data["lineup"][set_k]["Starters"]) < min(6, len(avail)):
+                    for p in avail:
+                        if p not in m_data["lineup"][set_k]["Starters"]:
+                            m_data["lineup"][set_k]["Starters"].append(p)
+                            if len(m_data["lineup"][set_k]["Starters"]) == min(6, len(avail)):
+                                break
+                               
+                # Filter subs
+                m_data["lineup"][set_k]["Subs"] = [p for p in m_data["lineup"][set_k]["Subs"] if p in avail or p == "Open"]
+               
+                # Clear session state keys to force dropdown refresh
+                for idx in range(6):
+                    k_st = f"{selected_match_key}_{set_k}_st_{idx}"
+                    k_su = f"{selected_match_key}_{set_k}_su_{idx}"
+                    if k_st in st.session_state: del st.session_state[k_st]
+                    if k_su in st.session_state: del st.session_state[k_su]
+           
+            save_data(MATCHES_FILE, st.session_state["matches"])
+
+    # ABSENCE MULTISELECT WITH CALLBACK
+    st.markdown("### 🚫 Pre-Game Attendance & Absence Tracker")
+    absent_selected = st.multiselect(
+        "Mark Players Absent / Out Today:",
+        active_team_roster,
+        key="absent_tracker_key",
+        on_change=purge_absent_players
+    )
+   
+    available_roster = [p for p in active_team_roster if p not in absent_selected]
+   
+    st.markdown("---")
+   
+    if selected_match_key == "➕ Create New Game" or not selected_match_key:
+        c1, c2, c3 = st.columns(3)
+        with c1: game_num = st.text_input("Game Name", "Game 2")
+        with c2: opp_name = st.text_input("Opponent", "Blazers")
+        with c3: game_date = st.date_input("Date", datetime.date.today())
+       
+        rot_style = st.selectbox("Rotation System:", ["Buddy System (Equal Play / Rec)", "Fixed Core Positions"])
        
         if st.button("🚀 Generate & Save Match"):
-            st.session_state["matches"][match_title] = {
+            p_list = available_roster.copy()
+            s1_starters = p_list[:6] if len(p_list) >= 6 else p_list
+            s1_subs = p_list[6:] if len(p_list) > 6 else ["Open"]
+            s2_starters = (p_list[6:] + p_list[:6])[:6] if len(p_list) >= 6 else p_list
+            s2_subs = p_list[:6] if len(p_list) > 6 else ["Open"]
+           
+            new_title = f"{game_num} vs {opp_name} ({game_date.strftime('%m/%d/%Y')})"
+            st.session_state["matches"][new_title] = {
                 "team": active_team,
                 "date": str(game_date),
                 "opponent": opp_name,
                 "mode": rot_style,
-                "active_players": active_list,
+                "active_players": available_roster,
                 "lineup": {
-                    "Set 1": {
-                        "Starters": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Ella"],
-                        "Subs": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Open / Continuous"]
-                    },
-                    "Set 2": {
-                        "Starters": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Ella"],
-                        "Subs": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Open / Continuous"]
-                    },
-                    "Set 3": {
-                        "Starters": ["Alivia", "Quinn", "Heidi", "Ellie", "Lillian", "Emmalani"],
-                        "Subs": ["Khloe", "Claire", "Lola", "Brinley", "Emmalani", "Ella"]
-                    }
+                    "Set 1": {"Starters": s1_starters, "Subs": s1_subs},
+                    "Set 2": {"Starters": s2_starters, "Subs": s2_subs},
+                    "Set 3": {"Starters": s1_starters, "Subs": s1_subs}
                 },
-                "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_list}
+                "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in available_roster}
             }
             save_data(MATCHES_FILE, st.session_state["matches"])
-            st.toast(f"Saved {match_title} permanently!", icon="💾")
+            st.toast(f"Generated match for {len(available_roster)} active players!", icon="🚀")
             st.rerun()
            
     else:
         current_data = st.session_state["matches"][selected_match_key]
         st.subheader(f"Active Match: {selected_match_key}")
-        st.caption(f"System Mode: **{current_data.get('mode', 'Buddy System')}** | CBRC Rule Compliant: ✅ YES")
        
+        with st.expander("🖨️ Display Bench Clipboard Sheet (Print / Screenshot)", expanded=True):
+            st.markdown("## 📋 Match Bench Lineup Sheet")
+            col_b1, col_b2, col_b3 = st.columns(3)
+            for set_n, col_b in zip(["Set 1", "Set 2", "Set 3"], [col_b1, col_b2, col_b3]):
+                with col_b:
+                    st.markdown(f"### **{set_n}**")
+                    st.markdown("**Starters:**")
+                    for i, p in enumerate(current_data["lineup"][set_n]["Starters"], 1):
+                        st.write(f"{i}. **{p}** ({st.session_state['roster'].get(p, {}).get('role', 'Utility')})")
+                    st.markdown("**Bench Subs:**")
+                    for p in current_data["lineup"][set_n]["Subs"]:
+                        st.write(f"🔄 {p}")
+
+        st.markdown("---")
         s1, s2, s3 = st.tabs(["Set 1 Lineup", "Set 2 Lineup", "Set 3 Lineup"])
         for set_num, set_tab in zip(["Set 1", "Set 2", "Set 3"], [s1, s2, s3]):
             with set_tab:
                 col_st, col_su = st.columns(2)
-               
                 with col_st:
-                    st.markdown("### 🏐 Starting 6 (Editable)")
-                    new_starters = []
+                    st.markdown("### 🏐 Starting 6")
                     for idx in range(6):
-                        curr_p = current_data["lineup"][set_num]["Starters"][idx] if idx < len(current_data["lineup"][set_num]["Starters"]) else active_team_roster[0]
-                        p_role_tag = st.session_state["roster"].get(curr_p, {}).get("role", "Utility")
-                        p_tier_tag = st.session_state["roster"].get(curr_p, {}).get("tier", "Developing")
-                       
+                        curr_starters = current_data["lineup"][set_num]["Starters"]
+                        curr_p = curr_starters[idx] if idx < len(curr_starters) else available_roster[0]
                         sel_p = st.selectbox(
-                            f"Serve Order {idx+1} [{p_role_tag} - {p_tier_tag}]:",
-                            active_team_roster,
-                            index=active_team_roster.index(curr_p) if curr_p in active_team_roster else 0,
-                            key=f"{selected_match_key}_{set_num}_starter_{idx}"
+                            f"Pos {idx+1}:",
+                            available_roster,
+                            index=available_roster.index(curr_p) if curr_p in available_roster else 0,
+                            key=f"{selected_match_key}_{set_num}_st_{idx}"
                         )
-                        new_starters.append(sel_p)
-                    current_data["lineup"][set_num]["Starters"] = new_starters
-
+                        if idx < len(curr_starters):
+                            curr_starters[idx] = sel_p
                 with col_su:
-                    st.markdown("### 🔄 Bench Substitutes (Editable)")
-                    sub_opts = active_team_roster + ["Open / Continuous"]
-                    new_subs = []
+                    st.markdown("### 🔄 Bench Subs")
+                    sub_opts = available_roster + ["Open"]
                     for idx in range(6):
-                        curr_s = current_data["lineup"][set_num]["Subs"][idx] if idx < len(current_data["lineup"][set_num]["Subs"]) else "Open / Continuous"
+                        curr_subs = current_data["lineup"][set_num]["Subs"]
+                        curr_s = curr_subs[idx] if idx < len(curr_subs) else "Open"
                         sel_s = st.selectbox(
-                            f"Sub Line {idx+1}:",
+                            f"Sub {idx+1}:",
                             sub_opts,
                             index=sub_opts.index(curr_s) if curr_s in sub_opts else 0,
-                            key=f"{selected_match_key}_{set_num}_sub_{idx}"
+                            key=f"{selected_match_key}_{set_num}_su_{idx}"
                         )
-                        new_subs.append(sel_s)
-                    current_data["lineup"][set_num]["Subs"] = new_subs
-               
-        if st.button("💾 Permanently Save Lineup Edits"):
+                        if idx < len(curr_subs):
+                            curr_subs[idx] = sel_s
+                           
+        if st.button("💾 Permanently Save Lineup Changes"):
             save_data(MATCHES_FILE, st.session_state["matches"])
-            st.toast("Saved modified lineup changes!", icon="💾")
+            st.toast("Saved lineup changes!", icon="💾")
 
-# --- TAB 2: VISUAL COURT POSITIONS ---
+# --- TAB 2: COURT DIAGRAM ---
 with tab_court:
-    st.header("🏐 Visual Court Diagram & Position Layout")
-   
-    if selected_match_key == "➕ Create New Game":
-        st.warning("Please select or create an active game in the top dropdown to view the court diagram.")
-    else:
+    st.header("🏐 Visual Court Diagram")
+    if selected_match_key != "➕ Create New Game" and selected_match_key:
         current_data = st.session_state["matches"][selected_match_key]
-        set_choice = st.radio("Select Set to Display on Court:", ["Set 1", "Set 2", "Set 3"], horizontal=True)
-        starters = current_data["lineup"][set_choice]["Starters"]
+        set_choice = st.radio("Display Set:", ["Set 1", "Set 2", "Set 3"], horizontal=True)
+        strs = current_data["lineup"][set_choice]["Starters"]
        
-        p1 = starters[0] if len(starters) > 0 else "Open"
-        p2 = starters[1] if len(starters) > 1 else "Open"
-        p3 = starters[2] if len(starters) > 2 else "Open"
-        p4 = starters[3] if len(starters) > 3 else "Open"
-        p5 = starters[4] if len(starters) > 4 else "Open"
-        p6 = starters[5] if len(starters) > 5 else "Open"
-
-        st.markdown("### 🏐 Court Formation - Front Row & Back Row")
         st.markdown("--- **NET** ---")
-       
         fr1, fr2, fr3 = st.columns(3)
-        with fr1:
-            st.metric(label="Pos 4 (Front Left)", value=p4, delta=f"{st.session_state['roster'].get(p4, {}).get('role', 'Utility')} | {st.session_state['roster'].get(p4, {}).get('tier', 'Developing')}")
-        with fr2:
-            st.metric(label="Pos 3 (Front Center)", value=p3, delta=f"{st.session_state['roster'].get(p3, {}).get('role', 'Utility')} | {st.session_state['roster'].get(p3, {}).get('tier', 'Developing')}")
-        with fr3:
-            st.metric(label="Pos 2 (Front Right)", value=p2, delta=f"{st.session_state['roster'].get(p2, {}).get('role', 'Utility')} | {st.session_state['roster'].get(p2, {}).get('tier', 'Developing')}")
-           
-        st.markdown("--- 3-Meter Attack Line ---")
+        with fr1: st.metric("Pos 4 (Front Left)", strs[3] if len(strs)>3 else "Open")
+        with fr2: st.metric("Pos 3 (Front Center)", strs[2] if len(strs)>2 else "Open")
+        with fr3: st.metric("Pos 2 (Front Right)", strs[1] if len(strs)>1 else "Open")
        
+        st.markdown("--- 3-Meter Attack Line ---")
         br1, br2, br3 = st.columns(3)
-        with br1:
-            st.metric(label="Pos 5 (Back Left)", value=p5, delta=f"{st.session_state['roster'].get(p5, {}).get('role', 'Utility')} | {st.session_state['roster'].get(p5, {}).get('tier', 'Developing')}")
-        with br2:
-            st.metric(label="Pos 6 (Back Center)", value=p6, delta=f"{st.session_state['roster'].get(p6, {}).get('role', 'Utility')} | {st.session_state['roster'].get(p6, {}).get('tier', 'Developing')}")
-        with br3:
-            st.metric(label="Pos 1 (Back Right / Server)", value=p1, delta=f"1st Server | {st.session_state['roster'].get(p1, {}).get('role', 'Utility')} | {st.session_state['roster'].get(p1, {}).get('tier', 'Developing')}")
+        with br1: st.metric("Pos 5 (Back Left)", strs[4] if len(strs)>4 else "Open")
+        with br2: st.metric("Pos 6 (Back Center)", strs[5] if len(strs)>5 else "Open")
+        with br3: st.metric("Pos 1 (Server)", strs[0] if len(strs)>0 else "Open")
 
-# --- TAB 3: LIVE SERVE & POINT TRACKER ---
+# --- TAB 3: LIVE SERVE TRACKER ---
 with tab_stats:
-    st.header("📊 Live Courtside Serve & Point Tracker")
-   
-    if selected_match_key == "➕ Create New Game":
-        st.warning("Please select or create an active game in the top dropdown to start tracking stats.")
-    else:
+    st.header("📊 Live Serve & Point Tracker")
+    if selected_match_key != "➕ Create New Game" and selected_match_key:
         active_match = st.session_state["matches"][selected_match_key]
         p_list = active_match["active_players"]
        
         col_ctrl, col_view = st.columns([1, 2])
-       
         with col_ctrl:
-            st.subheader("Record Action")
             server = st.selectbox("Select Current Server:", p_list)
-           
             b1, b2 = st.columns(2)
             with b1:
                 if st.button("✅ Serve IN"):
@@ -358,81 +283,55 @@ with tab_stats:
                     save_data(MATCHES_FILE, st.session_state["matches"])
                     st.toast(f"🔥 ACE logged for {server}!", icon="🏐")
             with b2:
-                if st.button("❌ Serve Out / Net"):
+                if st.button("❌ Serve Out"):
                     active_match["stats"][server]["Attempts"] += 1
                     save_data(MATCHES_FILE, st.session_state["matches"])
                     st.toast(f"Logged Serve Out for {server}", icon="❌")
-                if st.button("🏆 Point Scored on Serve"):
+                if st.button("🏆 Point Scored"):
                     active_match["stats"][server]["Points_Won"] += 1
                     save_data(MATCHES_FILE, st.session_state["matches"])
                     st.toast(f"Point Scored on {server}'s serve!", icon="🏆")
 
         with col_view:
-            st.subheader(f"Match Box Score - {selected_match_key}")
+            st.subheader("Match Box Score")
             stats_rows = []
-            for player_name in p_list:
-                p_stat = active_match["stats"].get(player_name, {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0})
+            for p_name in p_list:
+                p_stat = active_match["stats"].get(p_name, {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0})
                 att = p_stat["Attempts"]
                 mks = p_stat["Makes"]
                 pct = (mks / att * 100) if att > 0 else 0.0
                 stats_rows.append({
-                    "Player": player_name,
-                    "Position": st.session_state["roster"].get(player_name, {}).get("role", "Utility"),
-                    "Tier": st.session_state["roster"].get(player_name, {}).get("tier", "Developing"),
-                    "Attempts": att,
-                    "Serves In": mks,
-                    "Serve %": f"{pct:.1f}%",
-                    "Aces": p_stat["Aces"],
-                    "Points Won on Serve": p_stat["Points_Won"]
+                    "Player": p_name, "Attempts": att, "Makes": mks,
+                    "Serve %": f"{pct:.1f}%", "Aces": p_stat["Aces"], "Points Scored": p_stat["Points_Won"]
                 })
-           
-            df_match_stats = pd.DataFrame(stats_rows)
-            st.dataframe(df_match_stats, use_container_width=True)
-           
-            csv_data = df_match_stats.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Download Match Stats to CSV / Google Sheets",
-                data=csv_data,
-                file_name=f"{selected_match_key}_stats.csv",
-                mime="text/csv"
-            )
+            df_m = pd.DataFrame(stats_rows)
+            st.dataframe(df_m, use_container_width=True)
 
-# --- TAB 4: ROSTER, SKILL TIERS & POSITIONS ---
+# --- TAB 4: ROSTER & ROLES ---
 with tab_roles:
     st.header(f"👥 Roster & Position Settings - {active_team}")
-   
     tier_options = ["Anchor", "Playmaker", "Developing", "Server Specialist", "Defensive Specialist", "Anchor / Floating Rotator"]
     role_options = ["Setter (S)", "Libero / DS (L)", "Outside Hitter (OH)", "Middle Blocker (MB)", "Right Side (OPP)", "Defensive Specialist (DS)", "Universal / Utility"]
     buddy_options = active_team_roster + ["None (Floating)", "Open / Unassigned"]
    
-    col_r1, col_r2 = st.columns(2)
-   
-    with col_r1:
-        st.subheader("Current Volley Llamas Permanent Roster")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader("Current Permanent Roster")
         role_rows = []
         for p_name, p_data in st.session_state["roster"].items():
             role_rows.append({
-                "Player": p_name,
-                "Skill Tier": p_data.get("tier", "Developing"),
-                "Court Position": p_data.get("role", "Universal / Utility"),
-                "Buddy Partner": p_data.get("buddy", "Open")
+                "Player": p_name, "Skill Tier": p_data.get("tier", "Developing"),
+                "Court Position": p_data.get("role", "Universal / Utility"), "Buddy Partner": p_data.get("buddy", "Open")
             })
         st.dataframe(pd.DataFrame(role_rows), use_container_width=True)
-       
-        st.markdown("---")
-        st.subheader("⚡ Auto-Balance Buddy System")
-        st.caption("Pairs Core Anchors and Specialists 1-to-1 with Developing players.")
-       
         if st.button("⚡ Auto-Balance Buddy Pairs Now"):
             st.session_state["roster"] = auto_balance_buddies(st.session_state["roster"])
             save_data(ROSTER_FILE, st.session_state["roster"])
             st.toast("⚡ Auto-balanced and saved Buddy Pairs!", icon="⚡")
             st.rerun()
 
-    with col_r2:
-        st.subheader("Update Player Profile")
+    with c2:
         edit_p = st.selectbox("Select Player to Update:", active_team_roster, key="edit_p_perm")
-       
         with st.form(key="perm_player_form"):
             curr_tier = st.session_state["roster"][edit_p].get("tier", "Developing")
             curr_role = st.session_state["roster"][edit_p].get("role", "Universal / Utility")
@@ -442,65 +341,15 @@ with tab_roles:
             new_r = st.selectbox("Assign Position Role:", role_options, index=role_options.index(curr_role) if curr_role in role_options else 0)
             new_b = st.selectbox("Assign Buddy Partner:", buddy_options, index=buddy_options.index(curr_buddy) if curr_buddy in buddy_options else 0)
            
-            submit_button = st.form_submit_button(label="💾 Save Player Profile Changes Permanently")
-           
-            if submit_button:
-                st.session_state["roster"][edit_p] = {
-                    "tier": new_t,
-                    "role": new_r,
-                    "buddy": new_b
-                }
+            if st.form_submit_button("💾 Save Player Profile Changes Permanently"):
+                st.session_state["roster"][edit_p] = {"tier": new_t, "role": new_r, "buddy": new_b}
                 save_data(ROSTER_FILE, st.session_state["roster"])
-                st.toast(f"💾 Saved {edit_p}! Tier: '{new_t}' | Position: '{new_r}'", icon="✅")
+                st.toast(f"💾 Saved {edit_p}!", icon="✅")
                 st.rerun()
 
-# --- TAB 5: SEASON HISTORY & TRENDS ---
+# --- TAB 5 & TAB 6 ---
 with tab_history:
-    st.header(f"📈 Season History & Cumulative Trends - {active_team}")
-   
-    season_totals = {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_team_roster}
-    for g_key, g_data in st.session_state["matches"].items():
-        if g_data.get("team") == active_team:
-            for p_name, p_stat in g_data["stats"].items():
-                if p_name not in season_totals:
-                    season_totals[p_name] = {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0}
-                season_totals[p_name]["Attempts"] += p_stat["Attempts"]
-                season_totals[p_name]["Makes"] += p_stat["Makes"]
-                season_totals[p_name]["Aces"] += p_stat["Aces"]
-                season_totals[p_name]["Points_Won"] += p_stat["Points_Won"]
-           
-    season_rows = []
-    for p_name, s_stat in season_totals.items():
-        att = s_stat["Attempts"]
-        mks = s_stat["Makes"]
-        pct = (mks / att * 100) if att > 0 else 0.0
-        season_rows.append({
-            "Player": p_name,
-            "Position": st.session_state["roster"].get(p_name, {}).get("role", "Utility"),
-            "Tier": st.session_state["roster"].get(p_name, {}).get("tier", "Developing"),
-            "Total Serve Attempts": att,
-            "Total Serves In": mks,
-            "Season Serve %": f"{pct:.1f}%",
-            "Total Aces": s_stat["Aces"],
-            "Total Points Scored on Serve": s_stat["Points_Won"]
-        })
-       
-    df_season = pd.DataFrame(season_rows)
-    st.dataframe(df_season, use_container_width=True)
+    st.header(f"📈 Season History - {active_team}")
 
-# --- TAB 6: LEAGUE RULES & SETTINGS ---
 with tab_rules:
-    st.header("⚙️ CBRC League Rules & Settings Engine")
-   
-    col_r1, col_r2 = st.columns(2)
-    with col_r1:
-        st.subheader("Substitution Limits")
-        st.slider("Max Subs Per Stoppage", 1, 6, 3)
-        st.number_input("Mandatory Sub Credits Per Match", 1, 10, 4)
-        st.selectbox("Match Format", ["3 Fixed Sets (CBRC Standard)", "Best 2 out of 3", "Best 3 out of 5"])
-   
-    with col_r2:
-        st.subheader("Participation Rules")
-        st.selectbox("Set Starting Requirement", ["Must start Set 1 or Set 2 (CBRC)", "Must start at least 1 set", "Open / Coach Choice"])
-        st.checkbox("Enforce Set 3 Participation for All Active Players", value=True)
-        st.checkbox("Enable Libero / Position Tracking", value=True)
+    st.header("⚙️ CBRC League Rules & Settings")
