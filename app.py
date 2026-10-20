@@ -4,12 +4,12 @@ import datetime
 
 # --- APP CONFIGURATION ---
 st.set_page_config(
-    page_title="Universal Volleyball Lineup & Stat Hub",
+    page_title="Volley Llamas - Lineup & Match Hub",
     page_icon="🏐",
     layout="wide"
 )
 
-# --- DEFAULT ROSTER & POSITIONAL SETUP ---
+# --- VOLLEY LLAMAS ROSTER & POSITIONAL SETUP ---
 DEFAULT_TEAMS = {
     "Volley Llamas (CBRC Team 4)": {
         "Quinn": {"tier": "Anchor", "role": "Setter (S)", "buddy": "Claire"},
@@ -63,99 +63,26 @@ if "matches" not in st.session_state:
         }
     }
 
-# --- GLOBAL MATCH & TEAM SELECTOR (TOP BAR) ---
-st.title("🏐 Universal Volleyball Lineup, Stat & Rotation Hub")
+# --- GLOBAL MATCH SELECTOR (TOP BAR) ---
+st.title("🏐 CBRC Volley Llamas - Lineup, Stat & Rotation Hub")
 
 col_top1, col_top2 = st.columns([1, 2])
 with col_top1:
-    selected_team = st.selectbox("Select Active Team:", list(st.session_state.team_rosters.keys()) + ["➕ Create New Custom Team"])
-    if selected_team == "➕ Create New Custom Team":
-        new_team_name = st.text_input("New Team Name:", "CBRC Team 2")
-        if st.button("➕ Initialize Team"):
-            st.session_state.team_rosters[new_team_name] = {
-                f"Player {i}": {"tier": "Developing", "role": "Universal / Utility", "buddy": "Open"} for i in range(1, 11)
-            }
-            st.session_state.active_team = new_team_name
-            st.success(f"Initialized {new_team_name}! Head to '👥 Roster & Roles' to enter player names.")
-            st.rerun()
-    else:
-        st.session_state.active_team = selected_team
+    st.subheader(f"Team: {st.session_state.active_team}")
 
 with col_top2:
-    match_list = [k for k, v in st.session_state.matches.items() if v.get("team") == st.session_state.active_team] + ["➕ Create New Game"]
+    match_list = list(st.session_state.matches.keys()) + ["➕ Create New Game"]
     selected_match_key = st.selectbox("Select Active Game / Match Archive:", match_list)
 
 # --- APP NAVIGATION TABS ---
-tab_lineup, tab_stats, tab_roles, tab_history, tab_rules = st.tabs([
+tab_lineup, tab_court, tab_stats, tab_roles, tab_history, tab_rules = st.tabs([
     "📋 Lineup Generator & Editor",
+    "🏐 Visual Court Positions",
     "📊 Live Serve & Point Tracker",
     "👥 Roster, Roles & Positions",
     "📈 Season History & Trends",
     "⚙️ League Rules & Settings"
 ])
-
-# --- TAB 3: ROSTER, SKILL TIERS & POSITIONS ---
-with tab_roles:
-    st.header(f"👥 Roster & Position Settings - {st.session_state.active_team}")
-    st.info("💡 **Positioning Controls:** Set up fixed core roles (Setters, Libero, Middle Blockers) OR Buddy Pairs here. The generator uses these to build compliant lineups for any format!")
-   
-    tier_options = ["Anchor", "Playmaker", "Developing", "Server Specialist", "Floating Rotator"]
-    role_options = ["Setter (S)", "Libero / DS (L)", "Outside Hitter (OH)", "Middle Blocker (MB)", "Right Side (OPP)", "Defensive Specialist (DS)", "Universal / Utility"]
-    buddy_options = active_team_roster + ["None (Floating)", "Open / Unassigned"]
-   
-    col_r1, col_r2 = st.columns(2)
-   
-    role_rows = []
-    for p_name, p_data in current_team_dict.items():
-        role_rows.append({
-            "Player": p_name,
-            "Court Role / Position": p_data.get("role", "Universal / Utility"),
-            "Skill Tier": p_data.get("tier", "Developing"),
-            "Buddy Partner": p_data.get("buddy", "Open")
-        })
-   
-    with col_r1:
-        st.subheader("Current Team Roster & Roles")
-        st.dataframe(pd.DataFrame(role_rows), use_container_width=True)
-       
-    with col_r2:
-        st.subheader("Edit Player Role / Position")
-        edit_p = st.selectbox("Select Player to Update:", active_team_roster)
-       
-        curr_role = current_team_dict[edit_p].get("role", "Universal / Utility")
-        curr_tier = current_team_dict[edit_p].get("tier", "Developing")
-        curr_buddy = current_team_dict[edit_p].get("buddy", "Open")
-       
-        new_r = st.selectbox("Assigned Position Role:", role_options, index=role_options.index(curr_role) if curr_role in role_options else 0)
-        new_t = st.selectbox("Assigned Skill Tier:", tier_options, index=tier_options.index(curr_tier) if curr_tier in tier_options else 0)
-        new_b = st.selectbox("Assigned Buddy Partner:", buddy_options, index=buddy_options.index(curr_buddy) if curr_buddy in buddy_options else 0)
-       
-        if st.button("💾 Save Player Position Changes"):
-            st.session_state.team_rosters[st.session_state.active_team][edit_p] = {
-                "role": new_r, "tier": new_t, "buddy": new_b
-            }
-            st.success(f"Updated {edit_p}: Position set to '{new_r}'!")
-            st.rerun()
-
-    st.markdown("---")
-    st.subheader("➕ Add New Player to Team")
-    c_np1, c_np2, c_np3, c_np4 = st.columns(4)
-    with c_np1:
-        np_name = st.text_input("Player Name:")
-    with c_np2:
-        np_role = st.selectbox("Position Role:", role_options, key="np_role")
-    with c_np3:
-        np_tier = st.selectbox("Skill Tier:", tier_options, key="np_tier")
-    with c_np4:
-        np_buddy = st.selectbox("Buddy Partner:", buddy_options, key="np_buddy")
-       
-    if st.button("➕ Add Player"):
-        if np_name and np_name not in current_team_dict:
-            st.session_state.team_rosters[st.session_state.active_team][np_name] = {
-                "role": np_role, "tier": np_tier, "buddy": np_buddy
-            }
-            st.success(f"Added {np_name} to {st.session_state.active_team}!")
-            st.rerun()
 
 # --- TAB 1: LINEUP GENERATOR & EDITABLE OVERRIDE ---
 with tab_lineup:
@@ -180,7 +107,7 @@ with tab_lineup:
        
         enforce_rules = st.checkbox("Enforce CBRC Rules (Mandatory Set 1/2 Starts, 4 Sub Credits, Max 3 Subs/Stoppage)", value=True)
        
-        if st.button("🚀 Generate Compliant Match Lineup"):
+        if st.button("🚀 Generate Match Lineup"):
             p_list = active_list.copy()
             st.session_state.matches[match_title] = {
                 "team": st.session_state.active_team,
@@ -190,16 +117,16 @@ with tab_lineup:
                 "active_players": active_list,
                 "lineup": {
                     "Set 1": {
-                        "Starters": p_list[:6] if len(p_list) >= 6 else p_list,
-                        "Subs": p_list[6:] + ["Open / Continuous"] * max(0, 12 - len(p_list))
+                        "Starters": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Ella"],
+                        "Subs": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Open / Continuous"]
                     },
                     "Set 2": {
-                        "Starters": (p_list[6:] + p_list[:6])[:6],
-                        "Subs": (p_list[:6] + ["Open / Continuous"])[:6]
+                        "Starters": ["Khloe", "Quinn", "Lola", "Ellie", "Emmalani", "Ella"],
+                        "Subs": ["Alivia", "Claire", "Heidi", "Brinley", "Lillian", "Open / Continuous"]
                     },
                     "Set 3": {
-                        "Starters": p_list[:6] if len(p_list) >= 6 else p_list,
-                        "Subs": p_list[6:] + ["Open / Continuous"] * max(0, 12 - len(p_list))
+                        "Starters": ["Alivia", "Quinn", "Heidi", "Ellie", "Lillian", "Emmalani"],
+                        "Subs": ["Khloe", "Claire", "Lola", "Brinley", "Emmalani", "Ella"]
                     }
                 },
                 "stats": {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_list}
@@ -211,7 +138,7 @@ with tab_lineup:
         current_data = st.session_state.matches[selected_match_key]
         st.subheader(f"Active Match: {selected_match_key}")
         st.caption(f"System Mode: **{current_data.get('mode', 'Buddy System')}** | CBRC Rule Compliant: ✅ YES")
-        st.info("💡 **Manual Override:** You can manually swap any starter or sub position using the drop-downs below while preserving compliance!")
+        st.info("💡 **Manual Override:** You or Coach Ashley can manually swap any starter or sub position using the drop-downs below!")
        
         s1, s2, s3 = st.tabs(["Set 1 Lineup", "Set 2 Lineup", "Set 3 Lineup"])
         for set_num, set_tab in zip(["Set 1", "Set 2", "Set 3"], [s1, s2, s3]):
@@ -251,7 +178,49 @@ with tab_lineup:
                         new_subs.append(sel_s)
                     current_data["lineup"][set_num]["Subs"] = new_subs
 
-# --- TAB 2: LIVE SERVE & POINT TRACKER ---
+# --- TAB 2: VISUAL COURT POSITIONS ---
+with tab_court:
+    st.header("🏐 Visual Court Diagram & Position Layout")
+   
+    if selected_match_key == "➕ Create New Game":
+        st.warning("Please select or create an active game in the top dropdown to view the court diagram.")
+    else:
+        current_data = st.session_state.matches[selected_match_key]
+        set_choice = st.radio("Select Set to Display on Court:", ["Set 1", "Set 2", "Set 3"], horizontal=True)
+       
+        starters = current_data["lineup"][set_choice]["Starters"]
+       
+        p1 = starters[0] if len(starters) > 0 else "Open"
+        p2 = starters[1] if len(starters) > 1 else "Open"
+        p3 = starters[2] if len(starters) > 2 else "Open"
+        p4 = starters[3] if len(starters) > 3 else "Open"
+        p5 = starters[4] if len(starters) > 4 else "Open"
+        p6 = starters[5] if len(starters) > 5 else "Open"
+
+        st.markdown("### 🏐 Court Formation - Front Row & Back Row")
+        st.markdown("--- **NET** ---")
+       
+        # Front Row
+        fr1, fr2, fr3 = st.columns(3)
+        with fr1:
+            st.metric(label="Pos 4 (Front Left)", value=p4, delta=current_team_dict.get(p4, {}).get("role", "Utility"))
+        with fr2:
+            st.metric(label="Pos 3 (Front Center)", value=p3, delta=current_team_dict.get(p3, {}).get("role", "Utility"))
+        with fr3:
+            st.metric(label="Pos 2 (Front Right)", value=p2, delta=current_team_dict.get(p2, {}).get("role", "Utility"))
+           
+        st.markdown("--- 3-Meter Attack Line ---")
+       
+        # Back Row
+        br1, br2, br3 = st.columns(3)
+        with br1:
+            st.metric(label="Pos 5 (Back Left)", value=p5, delta=current_team_dict.get(p5, {}).get("role", "Utility"))
+        with br2:
+            st.metric(label="Pos 6 (Back Center)", value=p6, delta=current_team_dict.get(p6, {}).get("role", "Utility"))
+        with br3:
+            st.metric(label="Pos 1 (Back Right / Server)", value=p1, delta=f"1st Server | {current_team_dict.get(p1, {}).get('role', 'Utility')}")
+
+# --- TAB 3: LIVE SERVE & POINT TRACKER ---
 with tab_stats:
     st.header("📊 Live Courtside Serve & Point Tracker")
    
@@ -307,8 +276,60 @@ with tab_stats:
            
             df_match_stats = pd.DataFrame(stats_rows)
             st.dataframe(df_match_stats, use_container_width=True)
+           
+            # CSV Download Button
+            csv_data = df_match_stats.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Match Stats to CSV / Google Sheets",
+                data=csv_data,
+                file_name=f"{selected_match_key}_stats.csv",
+                mime="text/csv"
+            )
 
-# --- TAB 4: SEASON HISTORY & TRENDS ---
+# --- TAB 4: ROSTER, SKILL TIERS & POSITIONS ---
+with tab_roles:
+    st.header(f"👥 Roster & Position Settings - {st.session_state.active_team}")
+    st.info("💡 **Coaching Controls:** Set up player tiers (Anchor, Playmaker, Developing), assigned court roles (Setters, Libero, Hitters), and Buddy System pairs here.")
+   
+    tier_options = ["Anchor", "Playmaker", "Developing", "Server Specialist", "Floating Rotator"]
+    role_options = ["Setter (S)", "Libero / DS (L)", "Outside Hitter (OH)", "Middle Blocker (MB)", "Right Side (OPP)", "Defensive Specialist (DS)", "Universal / Utility"]
+    buddy_options = active_team_roster + ["None (Floating)", "Open / Unassigned"]
+   
+    col_r1, col_r2 = st.columns(2)
+   
+    role_rows = []
+    for p_name, p_data in current_team_dict.items():
+        role_rows.append({
+            "Player": p_name,
+            "Skill Tier": p_data.get("tier", "Developing"),
+            "Court Role / Position": p_data.get("role", "Universal / Utility"),
+            "Buddy Partner": p_data.get("buddy", "Open")
+        })
+   
+    with col_r1:
+        st.subheader("Current Volley Llamas Roster & Roles")
+        st.dataframe(pd.DataFrame(role_rows), use_container_width=True)
+       
+    with col_r2:
+        st.subheader("Edit Player Role / Skill Tier")
+        edit_p = st.selectbox("Select Player to Update:", active_team_roster)
+       
+        curr_tier = current_team_dict[edit_p].get("tier", "Developing")
+        curr_role = current_team_dict[edit_p].get("role", "Universal / Utility")
+        curr_buddy = current_team_dict[edit_p].get("buddy", "Open")
+       
+        new_t = st.selectbox("Assigned Skill Tier:", tier_options, index=tier_options.index(curr_tier) if curr_tier in tier_options else 0)
+        new_r = st.selectbox("Assigned Position Role:", role_options, index=role_options.index(curr_role) if curr_role in role_options else 0)
+        new_b = st.selectbox("Assigned Buddy Partner:", buddy_options, index=buddy_options.index(curr_buddy) if curr_buddy in buddy_options else 0)
+       
+        if st.button("💾 Save Player Position Changes"):
+            st.session_state.team_rosters[st.session_state.active_team][edit_p] = {
+                "tier": new_t, "role": new_r, "buddy": new_b
+            }
+            st.success(f"Updated {edit_p}!")
+            st.rerun()
+
+# --- TAB 5: SEASON HISTORY & TRENDS ---
 with tab_history:
     st.header(f"📈 Season History & Cumulative Trends - {st.session_state.active_team}")
     st.caption("Aggregated performance across all logged matches.")
@@ -343,7 +364,7 @@ with tab_history:
     df_season = pd.DataFrame(season_rows)
     st.dataframe(df_season, use_container_width=True)
 
-# --- TAB 5: LEAGUE RULES & SETTINGS ---
+# --- TAB 6: LEAGUE RULES & SETTINGS ---
 with tab_rules:
     st.header("⚙️ CBRC League Rules & Settings Engine")
    
