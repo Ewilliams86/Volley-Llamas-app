@@ -11,46 +11,78 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- CUSTOM CSS STYLING ENGINE ---
+# --- CLEAN EXECUTIVE SPORTS CSS STYLING ---
 st.markdown("""
     <style>
-    /* Dark Athletic Background & Text */
+    /* Dark Slate Court Surface Background */
     .stApp {
-        background-color: #0E1117;
-        color: #FAFAFA;
+        background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
+        color: #F8FAFC;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    /* Gold Team Headers */
+   
+    /* Subtle Volleyball Net Pattern Overlay */
+    .stApp::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-image: radial-gradient(#334155 1px, transparent 1px);
+        background-size: 24px 24px;
+        opacity: 0.15;
+        pointer-events: none;
+    }
+   
+    /* Clean Crisp Headers */
     h1, h2, h3 {
-        color: #FFD700 !important;
-        font-family: 'Trebuchet MS', sans-serif;
+        color: #F8FAFC !important;
+        font-weight: 700;
+        letter-spacing: -0.5px;
     }
-    /* Neon Green Stat Card Text */
+   
+    /* Professional Blue Subheaders & Accents */
+    .stMarkdown h3 {
+        color: #38BDF8 !important;
+        font-size: 1.1rem !important;
+    }
+
+    /* Refined Metric Cards */
     div[data-testid="stMetricValue"] {
-        font-size: 26px !important;
-        font-weight: bold;
-        color: #00E676 !important;
+        font-size: 24px !important;
+        font-weight: 600;
+        color: #38BDF8 !important;
     }
-    /* Bold Gold Navigation Tabs */
+    div[data-testid="stMetric"] {
+        background-color: rgba(30, 41, 59, 0.7);
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 12px 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+   
+    /* Clean Tab Styling */
     button[data-baseweb="tab"] {
-        font-size: 15px !important;
-        font-weight: bold;
-        color: #B0BEC5;
+        font-size: 14px !important;
+        font-weight: 600;
+        color: #94A3B8;
     }
     button[aria-selected="true"] {
-        color: #FFD700 !important;
-        border-bottom-color: #FFD700 !important;
+        color: #38BDF8 !important;
+        border-bottom-color: #38BDF8 !important;
     }
-    /* Athletic Blue Action Buttons */
+   
+    /* Subtle Modern Buttons */
     .stButton>button {
-        background-color: #1E88E5;
-        color: white;
-        font-weight: bold;
-        border-radius: 8px;
+        background-color: #0284C7;
+        color: #FFFFFF;
+        font-weight: 600;
+        border-radius: 6px;
         border: none;
+        padding: 6px 14px;
+        transition: all 0.2s ease;
     }
     .stButton>button:hover {
-        background-color: #1565C0;
-        color: #FFD700;
+        background-color: #0369A1;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -59,7 +91,7 @@ st.markdown("""
 ROSTER_FILE = "roster_data.json"
 MATCHES_FILE = "match_archive.json"
 
-# VOLLEY LLAMAS DEFAULT ROSTER
+# DEFAULT ROSTER DATA
 DEFAULT_ROSTER = {
     "Quinn": {"tier": "Anchor", "role": "Setter (S)", "buddy": "Claire"},
     "Claire": {"tier": "Developing", "role": "Outside Hitter (OH)", "buddy": "Quinn"},
@@ -74,7 +106,6 @@ DEFAULT_ROSTER = {
     "Ella": {"tier": "Anchor / Floating Rotator", "role": "Universal / Utility", "buddy": "None (Floating)"}
 }
 
-# DEFAULT FALLBACK MATCH ARCHIVE
 DEFAULT_MATCHES = {
     "Game 1 vs Velocity (10/07/2026)": {
         "team": "Volley Llamas (CBRC Team 4)",
@@ -100,7 +131,7 @@ DEFAULT_MATCHES = {
     }
 }
 
-# --- PERSISTENCE HELPERS ---
+# --- FILE PERSISTENCE HELPERS ---
 def load_data(file_path, default_data):
     if os.path.exists(file_path):
         try:
@@ -114,7 +145,6 @@ def save_data(file_path, data):
     with open(file_path, "w") as f:
         json.dump(data, f, indent=4)
 
-# --- AUTO-BALANCE BUDDY LOGIC ---
 def auto_balance_buddies(roster_dict):
     anchors_core = []
     developing = []
@@ -137,7 +167,7 @@ def auto_balance_buddies(roster_dict):
        
     return roster_dict
 
-# --- INITIALIZE PERMANENT SESSION STATE ---
+# --- SESSION STATE INITIALIZATION ---
 if "roster" not in st.session_state:
     st.session_state["roster"] = load_data(ROSTER_FILE, DEFAULT_ROSTER)
 
@@ -147,18 +177,18 @@ if "matches" not in st.session_state:
 active_team = "Volley Llamas (CBRC Team 4)"
 active_team_roster = list(st.session_state["roster"].keys())
 
-# --- GLOBAL TOP BAR ---
-st.title("🏐 CBRC Volley Llamas - Lineup, Stat & Rotation Hub")
+# --- TOP NAVIGATION BAR ---
+st.title("🏐 CBRC Volley Llamas - Lineup & Stat Hub")
 
 col_top1, col_top2 = st.columns([1, 2])
 with col_top1:
-    st.subheader(f"Team Workspace: {active_team}")
+    st.subheader(f"Team: {active_team}")
 
 with col_top2:
     match_list = list(st.session_state["matches"].keys()) + ["➕ Create New Game"]
-    selected_match_key = st.selectbox("Select Active Game / Match Archive:", match_list)
+    selected_match_key = st.selectbox("Select Active Game / Archive:", match_list)
 
-# --- APP NAVIGATION TABS ---
+# --- NAVIGATION TABS ---
 tab_lineup, tab_court, tab_stats, tab_roles, tab_history, tab_rules = st.tabs([
     "📋 Lineup Generator",
     "🏐 Court Diagram",
@@ -185,7 +215,7 @@ with tab_lineup:
         active_list = st.multiselect("Active Roster Today:", active_team_roster, default=active_team_roster)
         rot_style = st.selectbox("Select Rotation System:", ["Buddy System (Equal Play / Rec)", "Fixed Core Positions (Setters, Libero, OH, MB)"])
        
-        if st.button("🚀 Generate & Permanently Save Match"):
+        if st.button("🚀 Generate & Save Match"):
             st.session_state["matches"][match_title] = {
                 "team": active_team,
                 "date": str(game_date),
@@ -370,7 +400,6 @@ with tab_stats:
 # --- TAB 4: ROSTER, SKILL TIERS & POSITIONS ---
 with tab_roles:
     st.header(f"👥 Roster & Position Settings - {active_team}")
-    st.info("💡 **Coaching Controls:** Set up player tiers (Anchor, Playmaker, Developing, Server Specialist, Defensive Specialist) and auto-balance buddy pairs below!")
    
     tier_options = ["Anchor", "Playmaker", "Developing", "Server Specialist", "Defensive Specialist", "Anchor / Floating Rotator"]
     role_options = ["Setter (S)", "Libero / DS (L)", "Outside Hitter (OH)", "Middle Blocker (MB)", "Right Side (OPP)", "Defensive Specialist (DS)", "Universal / Utility"]
@@ -397,7 +426,7 @@ with tab_roles:
         if st.button("⚡ Auto-Balance Buddy Pairs Now"):
             st.session_state["roster"] = auto_balance_buddies(st.session_state["roster"])
             save_data(ROSTER_FILE, st.session_state["roster"])
-            st.toast("⚡ Successfully auto-balanced and saved Buddy Pairs!", icon="⚡")
+            st.toast("⚡ Auto-balanced and saved Buddy Pairs!", icon="⚡")
             st.rerun()
 
     with col_r2:
@@ -428,7 +457,6 @@ with tab_roles:
 # --- TAB 5: SEASON HISTORY & TRENDS ---
 with tab_history:
     st.header(f"📈 Season History & Cumulative Trends - {active_team}")
-    st.caption("Aggregated performance across all logged matches.")
    
     season_totals = {p: {"Attempts": 0, "Makes": 0, "Aces": 0, "Points_Won": 0} for p in active_team_roster}
     for g_key, g_data in st.session_state["matches"].items():
